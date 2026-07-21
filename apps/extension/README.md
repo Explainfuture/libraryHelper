@@ -9,7 +9,10 @@ The current increment provides:
   `application/epub+zip` MIME type;
 - bounded download-ID deduplication and a bounded queue in
   `chrome.storage.session`;
-- strict runtime parsing for the native messaging protocol; and
+- strict runtime parsing for the native messaging protocol;
+- one persistent Native Messaging connection with request correlation,
+  timeouts, exponential-backoff reconnects, and structured error handling;
+- session-scoped public transfer records that never contain a local path; and
 - a minimal popup that documents the current status and privacy boundary.
 
 The extension requests only `downloads`, `nativeMessaging`, `notifications`,
@@ -29,5 +32,5 @@ pnpm --filter @bookbridge/extension build
 ```
 
 The unpacked Chrome extension is written to `.output/chrome-mv3` after a build.
-Persistent native-host communication and the QR transfer flow are planned for
+The QR transfer window and its interactive transfer controls are planned for
 the next extension increment.

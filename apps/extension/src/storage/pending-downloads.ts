@@ -33,6 +33,17 @@ export class PendingDownloadQueue {
     return operation;
   }
 
+  remove(downloadId: number): Promise<void> {
+    if (!Number.isSafeInteger(downloadId) || downloadId < 0) {
+      return Promise.reject(
+        new RangeError("downloadId must be a non-negative safe integer"),
+      );
+    }
+    const operation = this.#tail.then(() => this.#remove(downloadId));
+    this.#tail = operation.catch(() => undefined);
+    return operation;
+  }
+
   async read(): Promise<readonly PendingDownload[]> {
     await this.#tail;
     const values = await this.#storage.get(PENDING_DOWNLOADS_KEY);
@@ -48,6 +59,14 @@ export class PendingDownloadQueue {
     await this.#storage.set({
       [PENDING_DOWNLOADS_KEY]: existing.slice(-this.#capacity),
     });
+  }
+
+  async #remove(downloadId: number): Promise<void> {
+    const values = await this.#storage.get(PENDING_DOWNLOADS_KEY);
+    const remaining = parsePendingDownloads(
+      values[PENDING_DOWNLOADS_KEY],
+    ).filter((candidate) => candidate.downloadId !== downloadId);
+    await this.#storage.set({ [PENDING_DOWNLOADS_KEY]: remaining });
   }
 }
 

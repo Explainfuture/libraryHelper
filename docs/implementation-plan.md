@@ -12,7 +12,10 @@ BookBridge will be delivered in small, independently verified batches:
    - **Complete:** Manifest V3 foundation, minimal permissions, EPUB download
      listener, bounded deduplication, session storage, strict protocol parsing,
      popup foundation, and TypeScript tests.
-   - **Next:** Persistent native channel, QR transfer window, countdown,
-     cancellation, and notifications.
+   - **Complete:** Persistent native channel, request timeouts, exponential
+     reconnects, transfer-state persistence, completion events, and host-error
+     notifications.
+   - **Next:** QR transfer window, countdown, copying, cancellation, and
+     success-state UI.
 6. Add Windows build, install, uninstall, and development scripts; then run the
    complete lint, typecheck, test, build, and manual Chrome verification gates.

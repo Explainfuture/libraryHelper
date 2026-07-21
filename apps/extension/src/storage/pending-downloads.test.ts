@@ -47,4 +47,19 @@ describe("PendingDownloadQueue", () => {
       { downloadId: 4, filePath: "new.epub", detectedAt: 2 },
     ]);
   });
+
+  it("serializes removals with appends", async () => {
+    const storage = new MemoryStorage();
+    const queue = new PendingDownloadQueue(storage);
+    await Promise.all([
+      queue.enqueue({ downloadId: 5, filePath: "five.epub", detectedAt: 1 }),
+      queue.enqueue({ downloadId: 6, filePath: "six.epub", detectedAt: 2 }),
+      queue.remove(5),
+    ]);
+
+    await expect(queue.read()).resolves.toEqual([
+      { downloadId: 6, filePath: "six.epub", detectedAt: 2 },
+    ]);
+    await expect(queue.remove(-1)).rejects.toBeInstanceOf(RangeError);
+  });
 });

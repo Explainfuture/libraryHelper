@@ -28,9 +28,11 @@ period after the Native Messaging pipe closes.
 
 The loadable Manifest V3 extension now has the minimal requested permission
 set, strict TypeScript protocol parsing, EPUB download detection and bounded
-deduplication, and a session-scoped pending-download queue. Persistent native
-communication, the QR transfer window, notifications, and Windows installation
-scripts will arrive in focused follow-up batches.
+deduplication, and session-scoped transfer state. Its persistent Native
+Messaging client correlates requests, enforces timeouts, reconnects with
+exponential backoff, handles completion events, and reports an unavailable
+local helper through a Chrome notification. The QR transfer window and Windows
+installation scripts will arrive in focused follow-up batches.
 
 ## Development
 
