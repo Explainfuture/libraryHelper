@@ -1,5 +1,6 @@
 import type { EligibleDownload } from "../downloads/coordinator";
 import type {
+  TransferCancelledMessage,
   TransferCompletedMessage,
   TransferCreatedMessage,
 } from "../protocol/messages";
@@ -10,6 +11,7 @@ export interface TransferNativeClient {
     filePath: string,
     downloadId: number,
   ): Promise<TransferCreatedMessage>;
+  cancelTransfer(transferId: string): Promise<TransferCancelledMessage>;
 }
 
 export interface TransferPendingQueue {
@@ -19,6 +21,7 @@ export interface TransferPendingQueue {
 
 export interface TransferRepository {
   save(payload: TransferCreatedMessage["payload"]): Promise<void>;
+  markCancelled(transferId: string): Promise<void>;
   markCompleted(transferId: string): Promise<void>;
 }
 
@@ -69,5 +72,10 @@ export class TransferService {
 
   complete(message: TransferCompletedMessage): Promise<void> {
     return this.#transfers.markCompleted(message.payload.transferId);
+  }
+
+  async cancel(transferId: string): Promise<void> {
+    const response = await this.#nativeClient.cancelTransfer(transferId);
+    await this.#transfers.markCancelled(response.payload.transferId);
   }
 }

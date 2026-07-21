@@ -24,6 +24,7 @@ describe("TransferService", () => {
           calls.push("create");
           return Promise.resolve(CREATED_MESSAGE);
         },
+        cancelTransfer: () => Promise.reject(new Error("not used")),
       },
       pendingDownloads: {
         enqueue: (download) => {
@@ -40,6 +41,7 @@ describe("TransferService", () => {
           calls.push("save");
           return Promise.resolve();
         },
+        markCancelled: () => Promise.resolve(),
         markCompleted: () => Promise.resolve(),
       },
       now: () => 42,
@@ -57,6 +59,7 @@ describe("TransferService", () => {
     const service = new TransferService({
       nativeClient: {
         createTransfer: () => Promise.reject(nativeError),
+        cancelTransfer: () => Promise.reject(new Error("not used")),
       },
       pendingDownloads: {
         enqueue: () => Promise.resolve(),
@@ -64,6 +67,7 @@ describe("TransferService", () => {
       },
       transfers: {
         save: () => Promise.resolve(),
+        markCancelled: () => Promise.resolve(),
         markCompleted: () => Promise.resolve(),
       },
     });
@@ -79,6 +83,7 @@ describe("TransferService", () => {
     const service = new TransferService({
       nativeClient: {
         createTransfer: () => Promise.resolve(CREATED_MESSAGE),
+        cancelTransfer: () => Promise.reject(new Error("not used")),
       },
       pendingDownloads: {
         enqueue: () => Promise.resolve(),
@@ -86,6 +91,7 @@ describe("TransferService", () => {
       },
       transfers: {
         save: () => Promise.resolve(),
+        markCancelled: () => Promise.resolve(),
         markCompleted,
       },
     });
@@ -96,5 +102,37 @@ describe("TransferService", () => {
       payload: { transferId: "transfer-1" },
     });
     expect(markCompleted).toHaveBeenCalledWith("transfer-1");
+  });
+
+  it("cancels through the native client before updating storage", async () => {
+    const calls: string[] = [];
+    const service = new TransferService({
+      nativeClient: {
+        createTransfer: () => Promise.resolve(CREATED_MESSAGE),
+        cancelTransfer: (transferId) => {
+          calls.push(`native:${transferId}`);
+          return Promise.resolve({
+            type: "TRANSFER_CANCELLED",
+            requestId: "request-2",
+            payload: { transferId },
+          });
+        },
+      },
+      pendingDownloads: {
+        enqueue: () => Promise.resolve(),
+        remove: () => Promise.resolve(),
+      },
+      transfers: {
+        save: () => Promise.resolve(),
+        markCancelled: (transferId) => {
+          calls.push(`storage:${transferId}`);
+          return Promise.resolve();
+        },
+        markCompleted: () => Promise.resolve(),
+      },
+    });
+
+    await service.cancel("transfer-2");
+    expect(calls).toEqual(["native:transfer-2", "storage:transfer-2"]);
   });
 });

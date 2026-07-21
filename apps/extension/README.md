@@ -13,7 +13,8 @@ The current increment provides:
 - one persistent Native Messaging connection with request correlation,
   timeouts, exponential-backoff reconnects, and structured error handling;
 - session-scoped public transfer records that never contain a local path; and
-- a minimal popup that documents the current status and privacy boundary.
+- an automatically opened QR transfer window with a live countdown, copy and
+  cancel controls, and completed, cancelled, and expired states.
 
 The extension requests only `downloads`, `nativeMessaging`, `notifications`,
 `storage`, and `windows`. It has no host permissions and does not inspect page
@@ -32,5 +33,5 @@ pnpm --filter @bookbridge/extension build
 ```
 
 The unpacked Chrome extension is written to `.output/chrome-mv3` after a build.
-The QR transfer window and its interactive transfer controls are planned for
-the next extension increment.
+QR codes are rendered locally as SVG by `qrcode.react`; the page loads no
+external assets or services.

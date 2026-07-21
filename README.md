@@ -31,8 +31,11 @@ set, strict TypeScript protocol parsing, EPUB download detection and bounded
 deduplication, and session-scoped transfer state. Its persistent Native
 Messaging client correlates requests, enforces timeouts, reconnects with
 exponential backoff, handles completion events, and reports an unavailable
-local helper through a Chrome notification. The QR transfer window and Windows
-installation scripts will arrive in focused follow-up batches.
+local helper through a Chrome notification. A successful transfer now opens a
+420×560 QR window backed only by session storage. It shows the public LAN URL,
+file metadata, live expiry countdown, copy and cancel controls, and completed,
+cancelled, or expired states. Windows installation scripts will arrive in the
+next focused batch.
 
 ## Development
 

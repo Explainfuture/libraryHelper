@@ -21,3 +21,16 @@ export async function showTransferError(error: unknown): Promise<void> {
     priority: 1,
   });
 }
+
+export async function showWindowError(): Promise<void> {
+  await chrome.notifications.create(
+    `bookbridge-window-error-${Date.now().toString()}`,
+    {
+      type: "basic",
+      iconUrl: chrome.runtime.getURL("/bookbridge.svg"),
+      title: "BookBridge",
+      message: "传输已创建，但无法打开二维码窗口。请重新下载 EPUB 后重试。",
+      priority: 1,
+    },
+  );
+}
