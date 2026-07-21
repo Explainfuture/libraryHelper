@@ -79,12 +79,53 @@ func NewHandler(config Config) (http.Handler, error) {
 	if clock == nil {
 		clock = time.Now
 	}
-	return &downloadHandler{
+	handler := &downloadHandler{
 		store:       config.Store,
 		clock:       clock,
 		limiter:     newFailureLimiter(config.FailureLimit, config.FailureWindow, config.MaxFailureClients),
 		onCompleted: config.OnCompleted,
-	}, nil
+	}
+	return recoverHTTPPanics(handler), nil
+}
+
+type recoveryResponseWriter struct {
+	http.ResponseWriter
+	wroteHeader bool
+}
+
+func (writer *recoveryResponseWriter) WriteHeader(statusCode int) {
+	if writer.wroteHeader {
+		return
+	}
+	writer.wroteHeader = true
+	writer.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (writer *recoveryResponseWriter) Write(data []byte) (int, error) {
+	if !writer.wroteHeader {
+		writer.WriteHeader(http.StatusOK)
+	}
+	return writer.ResponseWriter.Write(data)
+}
+
+func (writer *recoveryResponseWriter) Unwrap() http.ResponseWriter {
+	return writer.ResponseWriter
+}
+
+func recoverHTTPPanics(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		writer := &recoveryResponseWriter{ResponseWriter: response}
+		defer func() {
+			if recover() == nil {
+				return
+			}
+			setSecurityHeaders(writer.Header())
+			if !writer.wroteHeader {
+				http.Error(writer, "internal server error", http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(writer, request)
+	})
 }
 
 func (handler *downloadHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {

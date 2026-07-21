@@ -19,5 +19,11 @@ BookBridge will be delivered in small, independently verified batches:
      cancellation, session-backed status updates, and terminal-state UI.
 6. **Complete:** Add Windows build, current-user install, safe uninstall, and
    parallel WXT/Go development scripts; document Chrome/iPhone setup and run
-   the automated lint, typecheck, test, and build gates. Real Chrome, Windows
-   Firewall, and iPhone verification remains a manual release gate.
+   the automated lint, typecheck, test, and build gates.
+7. **Complete:** Generate Chrome-compatible raster icons, isolate HTTP handler
+   panics, centralize Native Messaging manifest generation, verify builds from
+   Unicode/space paths, and load the production extension in isolated Chromium
+   to prove its exact permissions, MV3 worker, and popup.
+8. **Manual release gate:** Verify the installed host with real Google Chrome,
+   approve only the private-network Windows Firewall scope, and complete the
+   QR/download/Apple Books flow on a real iPhone on the same Wi-Fi.

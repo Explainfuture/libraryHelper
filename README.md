@@ -113,6 +113,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev.ps1 -Extension
 
 这些目录是构建产物，不会提交到 Git。
 
+构建脚本会从仓库内的 BookBridge 图形生成 Chrome 所需的 16/32/48/128 px PNG
+图标。要快速验证 WXT 和 Go 的并行开发流程会启动且能被干净关闭，可运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev.ps1 -SmokeTest
+```
+
 ## 测试与质量检查
 
 ```powershell
@@ -122,12 +129,25 @@ pnpm typecheck
 pnpm test
 go test ./...
 pnpm build
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-extension.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-paths.ps1
 ```
 
 Vitest 覆盖 EPUB 识别、下载去重、Native Messaging 超时/重连/协议校验、session
 存储、窗口参数、倒计时和取消编排。Go 测试覆盖长度前缀协议、EPUB 校验、随机
 token/session 生命周期、HTTP 安全头、中文文件名、无效 token、HEAD 语义、HTML
-转义、限流和网卡过滤。测试不依赖真实 Chrome 或真实网络环境。
+转义、限流、panic 隔离和网卡过滤。单元测试不依赖真实 Chrome 或真实网络环境。
+
+`smoke-extension.ps1` 使用隔离的 Chromium 配置目录加载生产扩展，检查构建后的
+manifest 只含五项最小权限、没有 `host_permissions`、使用 PNG 图标，并确认 MV3
+Service Worker 与 popup 实际启动；不会修改用户的 Chrome 配置。脚本优先使用本机
+Playwright Chromium，也可用 `-ChromePath` 指定兼容的 Chromium executable。
+`smoke-paths.ps1` 会从仓库内的临时中文及空格路径执行完整构建，并校验 Native
+Messaging manifest 能无损保存该绝对路径。
+
+正式发布前仍须按“安装”和“使用”章节在真实 Google Chrome 中手动加载扩展，确认
+Windows 防火墙只允许专用网络，并用同一 Wi-Fi 下的真实 iPhone 完成一次扫码、下载与
+Apple Books 打开流程。自动化 Chromium 烟测不能替代这三项人工验收。
 
 ## 常见问题
 

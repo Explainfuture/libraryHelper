@@ -30,14 +30,9 @@ if (-not $PSCmdlet.ShouldProcess($installDirectory, 'Build and install BookBridg
 New-Item -ItemType Directory -Path $installDirectory -Force | Out-Null
 Copy-Item -LiteralPath $builtExecutable -Destination $installedExecutable -Force
 
-$manifest = [ordered]@{
-    name = 'com.bookbridge.host'
-    description = 'BookBridge EPUB transfer host'
-    path = $installedExecutable
-    type = 'stdio'
-    allowed_origins = @("chrome-extension://$ExtensionId/")
-}
-$manifestJson = $manifest | ConvertTo-Json -Depth 4
+$manifestJson = New-BookBridgeNativeManifestJson `
+    -ExtensionId $ExtensionId `
+    -ExecutablePath $installedExecutable
 Write-BookBridgeUtf8File -Path $manifestPath -Content $manifestJson
 
 New-Item -Path $registryPath -Force | Out-Null

@@ -2,7 +2,10 @@
 param(
     [Parameter()]
     [ValidatePattern('^[a-p]{32}$')]
-    [string] $ExtensionId
+    [string] $ExtensionId,
+
+    [Parameter()]
+    [switch] $SmokeTest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,6 +46,34 @@ function Get-GoSourceSignature {
         }) -join ';'
 }
 
+function Stop-DevelopmentProcessTree {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int] $RootProcessId
+    )
+
+    $processes = @(Get-CimInstance Win32_Process)
+    $pendingIds = New-Object System.Collections.Generic.Queue[int]
+    $descendantIds = New-Object System.Collections.Generic.List[int]
+    $pendingIds.Enqueue($RootProcessId)
+    while ($pendingIds.Count -gt 0) {
+        $parentId = $pendingIds.Dequeue()
+        foreach ($process in $processes) {
+            if ($process.ParentProcessId -eq $parentId) {
+                $childId = [int]$process.ProcessId
+                $pendingIds.Enqueue($childId)
+                $descendantIds.Add($childId)
+            }
+        }
+    }
+    $orderedIds = @($descendantIds)
+    [array]::Reverse($orderedIds)
+    foreach ($processId in $orderedIds) {
+        Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+    }
+    Stop-Process -Id $RootProcessId -Force -ErrorAction SilentlyContinue
+}
+
 Build-DevelopmentHost
 $lastSourceSignature = Get-GoSourceSignature
 
@@ -50,16 +81,13 @@ if ($ExtensionId) {
     Assert-BookBridgeWindows
     $manifestPath = Join-Path -Path $hostOutputDirectory -ChildPath 'com.bookbridge.host.json'
     $registryPath = 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.bookbridge.host'
-    $manifest = [ordered]@{
-        name = 'com.bookbridge.host'
-        description = 'BookBridge EPUB transfer host (development)'
-        path = $hostExecutable
-        type = 'stdio'
-        allowed_origins = @("chrome-extension://$ExtensionId/")
-    }
+    $manifestJson = New-BookBridgeNativeManifestJson `
+        -ExtensionId $ExtensionId `
+        -ExecutablePath $hostExecutable `
+        -Description 'BookBridge EPUB transfer host (development)'
     Write-BookBridgeUtf8File `
         -Path $manifestPath `
-        -Content ($manifest | ConvertTo-Json -Depth 4)
+        -Content $manifestJson
     New-Item -Path $registryPath -Force | Out-Null
     Set-Item -Path $registryPath -Value $manifestPath
     Write-Host "Registered development Native Host for extension $ExtensionId"
@@ -83,6 +111,12 @@ $wxtProcess = Start-Process `
     -NoNewWindow `
     -PassThru
 
+$developmentManifest = Join-Path `
+    -Path $repositoryRoot `
+    -ChildPath 'apps\extension\.output\chrome-mv3-dev\manifest.json'
+$smokeStartedAt = [DateTime]::UtcNow
+$smokeDeadline = $smokeStartedAt.AddSeconds(30)
+$smokePassed = $false
 try {
     while (-not $wxtProcess.HasExited) {
         Start-Sleep -Seconds 1
@@ -98,15 +132,31 @@ try {
                 Write-Warning "Native Host rebuild failed: $($_.Exception.Message)"
             }
         }
+
+        if ($SmokeTest -and
+            (Test-Path -LiteralPath $developmentManifest -PathType Leaf) -and
+            (Get-Item -LiteralPath $developmentManifest).LastWriteTimeUtc -ge $smokeStartedAt -and
+            (Test-Path -LiteralPath $hostExecutable -PathType Leaf)) {
+            $smokePassed = $true
+            Write-Output "WXT development manifest: $developmentManifest"
+            Write-Output "Go development host: $hostExecutable"
+            break
+        }
+        if ($SmokeTest -and [DateTime]::UtcNow -ge $smokeDeadline) {
+            throw 'Development smoke test timed out waiting for WXT output.'
+        }
     }
 
-    if ($wxtProcess.ExitCode -ne 0) {
+    if ($SmokeTest -and -not $smokePassed) {
+        throw 'WXT exited before the development smoke test completed.'
+    }
+    if (-not $SmokeTest -and $wxtProcess.ExitCode -ne 0) {
         throw "WXT exited with code $($wxtProcess.ExitCode)."
     }
 }
 finally {
     if (-not $wxtProcess.HasExited) {
-        Stop-Process -Id $wxtProcess.Id
+        Stop-DevelopmentProcessTree -RootProcessId $wxtProcess.Id
     }
     $wxtProcess.Dispose()
 }

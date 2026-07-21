@@ -14,6 +14,7 @@ $repositoryRoot = Get-BookBridgeRoot
 $hostOutputDirectory = Join-Path -Path $repositoryRoot -ChildPath 'dist\native-host'
 $hostExecutable = Join-Path -Path $hostOutputDirectory -ChildPath 'bookbridge-host.exe'
 $extensionOutput = Join-Path -Path $repositoryRoot -ChildPath 'apps\extension\.output\chrome-mv3'
+$iconScript = Join-Path -Path $PSScriptRoot -ChildPath 'generate-icons.ps1'
 
 Push-Location -LiteralPath $repositoryRoot
 try {
@@ -21,6 +22,7 @@ try {
         Invoke-BookBridgeCommand -Command 'pnpm' -Arguments @('install', '--frozen-lockfile')
     }
 
+    & $iconScript
     Invoke-BookBridgeCommand -Command 'pnpm' -Arguments @(
         '--filter',
         '@bookbridge/extension',

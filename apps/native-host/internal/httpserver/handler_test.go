@@ -161,6 +161,32 @@ func TestOnlyGetAndHeadAreAllowed(t *testing.T) {
 	}
 }
 
+func TestHandlerRecoversPanicsWithoutAffectingLaterRequests(t *testing.T) {
+	t.Parallel()
+
+	requests := 0
+	handler := recoverHTTPPanics(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+		requests++
+		if requests == 1 {
+			panic("request failure")
+		}
+		response.WriteHeader(http.StatusNoContent)
+	}))
+
+	first := serveRequest(handler, http.MethodGet, "/panic", "192.168.1.30:50000")
+	if first.Code != http.StatusInternalServerError {
+		t.Fatalf("panic status = %d, want %d", first.Code, http.StatusInternalServerError)
+	}
+	if first.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal("panic response is missing security headers")
+	}
+
+	second := serveRequest(handler, http.MethodGet, "/healthy", "192.168.1.30:50001")
+	if second.Code != http.StatusNoContent {
+		t.Fatalf("subsequent status = %d, want %d", second.Code, http.StatusNoContent)
+	}
+}
+
 func TestFailedRequestRateLimit(t *testing.T) {
 	t.Parallel()
 
