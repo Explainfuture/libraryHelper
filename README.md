@@ -19,8 +19,11 @@ not call a cloud service.
 
 The native host currently includes the tested Chrome Native Messaging frame
 codec, bounded EPUB metadata validation, and a concurrency-safe in-memory
-transfer session store. The LAN HTTP server, extension, and installation
-scripts will arrive in focused follow-up batches.
+transfer session store. It also includes RFC1918 LAN address selection and a
+hardened mobile HTTP download service with single-download claiming, safe
+headers, expiry enforcement, and failed-token rate limiting. The native host
+request loop, extension, and installation scripts will arrive in focused
+follow-up batches.
 
 ## Development
 

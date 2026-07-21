@@ -122,6 +122,77 @@ func TestCancelledSessionIsImmediatelyInaccessible(t *testing.T) {
 	}
 }
 
+func TestDownloadClaimCanAbortAndRetry(t *testing.T) {
+	t.Parallel()
+
+	store := NewStore(Options{RandomReader: deterministicRandom(64), CleanupInterval: -1})
+	t.Cleanup(func() { _ = store.Close() })
+
+	session, token, err := store.Create(validInput(t))
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	claimed, err := store.BeginDownload(session.TransferID)
+	if err != nil {
+		t.Fatalf("BeginDownload() error = %v", err)
+	}
+	if claimed.Status != StatusTransferring {
+		t.Fatalf("claimed Status = %q, want %q", claimed.Status, StatusTransferring)
+	}
+	if _, err := store.BeginDownload(session.TransferID); !errors.Is(err, ErrSessionNotActive) {
+		t.Fatalf("second BeginDownload() error = %v, want ErrSessionNotActive", err)
+	}
+	resolved, found := store.Resolve(token)
+	if !found || resolved.Status != StatusTransferring {
+		t.Fatalf("Resolve() during download = (%#v, %v), want transferring session", resolved, found)
+	}
+	aborted, err := store.AbortDownload(session.TransferID)
+	if err != nil {
+		t.Fatalf("AbortDownload() error = %v", err)
+	}
+	if aborted.Status != StatusActive {
+		t.Fatalf("aborted Status = %q, want %q", aborted.Status, StatusActive)
+	}
+	if _, err := store.BeginDownload(session.TransferID); err != nil {
+		t.Fatalf("BeginDownload() after abort error = %v", err)
+	}
+}
+
+func TestDownloadCanCompleteAfterLinkExpires(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, time.July, 21, 0, 0, 0, 0, time.UTC)
+	store := NewStore(Options{
+		TTL:             time.Minute,
+		Clock:           func() time.Time { return now },
+		RandomReader:    deterministicRandom(64),
+		CleanupInterval: -1,
+	})
+	t.Cleanup(func() { _ = store.Close() })
+
+	session, _, err := store.Create(validInput(t))
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if _, err := store.BeginDownload(session.TransferID); err != nil {
+		t.Fatalf("BeginDownload() error = %v", err)
+	}
+	now = now.Add(2 * time.Minute)
+	if removed := store.CleanupExpired(); removed != 0 {
+		t.Fatalf("CleanupExpired() removed %d in-flight sessions, want 0", removed)
+	}
+	completed, err := store.Complete(session.TransferID)
+	if err != nil {
+		t.Fatalf("Complete() after expiry error = %v", err)
+	}
+	if completed.Status != StatusCompleted {
+		t.Fatalf("completed Status = %q, want %q", completed.Status, StatusCompleted)
+	}
+	if removed := store.CleanupExpired(); removed != 1 {
+		t.Fatalf("CleanupExpired() after completion removed %d sessions, want 1", removed)
+	}
+}
+
 func TestExpiredSessionCannotResolveAndIsCleaned(t *testing.T) {
 	t.Parallel()
 

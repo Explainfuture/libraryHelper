@@ -33,9 +33,10 @@ var (
 type Status string
 
 const (
-	StatusActive    Status = "active"
-	StatusCancelled Status = "cancelled"
-	StatusCompleted Status = "completed"
+	StatusActive       Status = "active"
+	StatusTransferring Status = "transferring"
+	StatusCancelled    Status = "cancelled"
+	StatusCompleted    Status = "completed"
 )
 
 // Session contains only the token hash. The raw token is kept by the caller
@@ -197,14 +198,6 @@ func (store *Store) Get(transferID string) (Session, bool) {
 }
 
 func (store *Store) Cancel(transferID string) (Session, error) {
-	return store.transition(transferID, StatusCancelled)
-}
-
-func (store *Store) Complete(transferID string) (Session, error) {
-	return store.transition(transferID, StatusCompleted)
-}
-
-func (store *Store) transition(transferID string, target Status) (Session, error) {
 	now := store.clock().UTC()
 
 	store.mu.Lock()
@@ -216,11 +209,85 @@ func (store *Store) transition(transferID string, target Status) (Session, error
 	if !found {
 		return Session{}, ErrSessionNotFound
 	}
-	if session.Status != StatusActive || !now.Before(session.ExpiresAt) {
+	if session.Status != StatusActive && session.Status != StatusTransferring {
 		return Session{}, ErrSessionNotActive
 	}
-	session.Status = target
+	if session.Status == StatusActive && !now.Before(session.ExpiresAt) {
+		return Session{}, ErrSessionNotActive
+	}
+	session.Status = StatusCancelled
 	store.sessions[transferID] = session
+	return session, nil
+}
+
+func (store *Store) Complete(transferID string) (Session, error) {
+	now := store.clock().UTC()
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if store.closed {
+		return Session{}, ErrStoreClosed
+	}
+	session, found := store.sessions[transferID]
+	if !found {
+		return Session{}, ErrSessionNotFound
+	}
+	if session.Status != StatusTransferring && (session.Status != StatusActive || !now.Before(session.ExpiresAt)) {
+		return Session{}, ErrSessionNotActive
+	}
+	session.Status = StatusCompleted
+	store.sessions[transferID] = session
+	return session, nil
+}
+
+// BeginDownload atomically claims an active session for one GET request.
+func (store *Store) BeginDownload(transferID string) (Session, error) {
+	now := store.clock().UTC()
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	session, err := store.activeSessionLocked(transferID, now)
+	if err != nil {
+		return Session{}, err
+	}
+	if session.Status != StatusActive {
+		return Session{}, ErrSessionNotActive
+	}
+	session.Status = StatusTransferring
+	store.sessions[transferID] = session
+	return session, nil
+}
+
+// AbortDownload makes an interrupted transfer available again until expiry.
+func (store *Store) AbortDownload(transferID string) (Session, error) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if store.closed {
+		return Session{}, ErrStoreClosed
+	}
+	session, found := store.sessions[transferID]
+	if !found {
+		return Session{}, ErrSessionNotFound
+	}
+	if session.Status != StatusTransferring {
+		return Session{}, ErrSessionNotActive
+	}
+	session.Status = StatusActive
+	store.sessions[transferID] = session
+	return session, nil
+}
+
+func (store *Store) activeSessionLocked(transferID string, now time.Time) (Session, error) {
+	if store.closed {
+		return Session{}, ErrStoreClosed
+	}
+	session, found := store.sessions[transferID]
+	if !found {
+		return Session{}, ErrSessionNotFound
+	}
+	if !now.Before(session.ExpiresAt) {
+		return Session{}, ErrSessionNotActive
+	}
 	return session, nil
 }
 
@@ -236,7 +303,7 @@ func (store *Store) CleanupExpired() int {
 		return 0
 	}
 	for transferID, session := range store.sessions {
-		if !now.Before(session.ExpiresAt) {
+		if session.Status != StatusTransferring && !now.Before(session.ExpiresAt) {
 			delete(store.sessions, transferID)
 			removed++
 		}
