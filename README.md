@@ -17,9 +17,10 @@ not call a cloud service.
 
 ## Current development status
 
-The first implementation batch establishes the monorepo and the tested Chrome
-Native Messaging frame codec. Transfer sessions, the LAN HTTP server, the
-extension, and installation scripts will arrive in focused follow-up batches.
+The native host currently includes the tested Chrome Native Messaging frame
+codec, bounded EPUB metadata validation, and a concurrency-safe in-memory
+transfer session store. The LAN HTTP server, extension, and installation
+scripts will arrive in focused follow-up batches.
 
 ## Development
 
