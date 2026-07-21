@@ -52,6 +52,9 @@ func TestStoreCreatesSessionWithHashedToken(t *testing.T) {
 	if session.Status != StatusActive {
 		t.Fatalf("Status = %q, want %q", session.Status, StatusActive)
 	}
+	if store.RetainedCount() != 1 {
+		t.Fatalf("RetainedCount() = %d, want 1", store.RetainedCount())
+	}
 }
 
 func TestTokenHashComparison(t *testing.T) {
@@ -90,6 +93,9 @@ func TestStoreResolvesAndCompletesSession(t *testing.T) {
 	}
 	if completed.Status != StatusCompleted {
 		t.Fatalf("completed Status = %q, want %q", completed.Status, StatusCompleted)
+	}
+	if store.RetainedCount() != 0 {
+		t.Fatalf("RetainedCount() after completion = %d, want 0", store.RetainedCount())
 	}
 	resolved, found = store.Resolve(token)
 	if !found || resolved.Status != StatusCompleted {
@@ -178,6 +184,9 @@ func TestDownloadCanCompleteAfterLinkExpires(t *testing.T) {
 		t.Fatalf("BeginDownload() error = %v", err)
 	}
 	now = now.Add(2 * time.Minute)
+	if store.RetainedCount() != 0 {
+		t.Fatalf("RetainedCount() after expiry = %d, want 0", store.RetainedCount())
+	}
 	if removed := store.CleanupExpired(); removed != 0 {
 		t.Fatalf("CleanupExpired() removed %d in-flight sessions, want 0", removed)
 	}

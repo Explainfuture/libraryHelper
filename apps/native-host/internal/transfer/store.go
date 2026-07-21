@@ -317,6 +317,24 @@ func (store *Store) Count() int {
 	return len(store.sessions)
 }
 
+// RetainedCount reports active or in-flight sessions that still justify
+// keeping the HTTP service alive after the Native Messaging pipe closes.
+func (store *Store) RetainedCount() int {
+	now := store.clock().UTC()
+	count := 0
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+	if store.closed {
+		return 0
+	}
+	for _, session := range store.sessions {
+		if now.Before(session.ExpiresAt) && (session.Status == StatusActive || session.Status == StatusTransferring) {
+			count++
+		}
+	}
+	return count
+}
+
 // Close stops background cleanup and releases all in-memory session data.
 func (store *Store) Close() error {
 	store.closeOnce.Do(func() {
