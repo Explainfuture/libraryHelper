@@ -1,0 +1,21 @@
+# JavaScript dependencies and generated output
+node_modules/
+.pnpm-store/
+.wxt/
+dist/
+build/
+coverage/
+
+# Go build and test output
+*.exe
+*.test
+*.out
+
+# Local configuration and editor files
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
