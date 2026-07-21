@@ -140,8 +140,10 @@ token/session 生命周期、HTTP 安全头、中文文件名、无效 token、H
 
 `smoke-extension.ps1` 使用隔离的 Chromium 配置目录加载生产扩展，检查构建后的
 manifest 只含五项最小权限、没有 `host_permissions`、使用 PNG 图标，并确认 MV3
-Service Worker 与 popup 实际启动；不会修改用户的 Chrome 配置。脚本优先使用本机
-Playwright Chromium，也可用 `-ChromePath` 指定兼容的 Chromium executable。
+Service Worker 与 popup 实际启动。烟测还会创建传输 popup，验证中文文件名、大小、
+二维码、倒计时、复制/取消按钮、局域网提示，以及取消、完成和过期终态；测试数据只
+写入隔离浏览器的 `chrome.storage.session`，不会修改用户的 Chrome 配置。脚本优先
+使用本机 Playwright Chromium，也可用 `-ChromePath` 指定兼容的 Chromium executable。
 `smoke-paths.ps1` 会从仓库内的临时中文及空格路径执行完整构建，并校验 Native
 Messaging manifest 能无损保存该绝对路径。
 

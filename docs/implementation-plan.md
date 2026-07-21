@@ -23,7 +23,8 @@ BookBridge will be delivered in small, independently verified batches:
 7. **Complete:** Generate Chrome-compatible raster icons, isolate HTTP handler
    panics, centralize Native Messaging manifest generation, verify builds from
    Unicode/space paths, and load the production extension in isolated Chromium
-   to prove its exact permissions, MV3 worker, and popup.
+   to prove its exact permissions, MV3 worker, popup, QR transfer window, and
+   active/cancelled/completed/expired UI states.
 8. **Manual release gate:** Verify the installed host with real Google Chrome,
    approve only the private-network Windows Firewall scope, and complete the
    QR/download/Apple Books flow on a real iPhone on the same Wi-Fi.

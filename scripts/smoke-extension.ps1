@@ -13,6 +13,7 @@ Set-StrictMode -Version Latest
 
 Assert-BookBridgeWindows
 Assert-BookBridgeCommand -Name 'pnpm'
+Assert-BookBridgeCommand -Name 'node'
 
 $repositoryRoot = Get-BookBridgeRoot
 $distRoot = [System.IO.Path]::GetFullPath(
@@ -209,6 +210,15 @@ try {
     if ($popupTargets.Count -eq 0) {
         throw "BookBridge popup did not load. See $standardErrorPath"
     }
+
+    $uiSmokeScript = Join-Path `
+        -Path $repositoryRoot `
+        -ChildPath 'scripts\smoke-extension-ui.mjs'
+    Invoke-BookBridgeCommand -Command 'node' -Arguments @(
+        $uiSmokeScript,
+        [string]$port,
+        $extensionId
+    )
 
     $version = Invoke-RestMethod -Uri "http://127.0.0.1:$port/json/version"
     Write-Output "Executable: $ChromePath"
