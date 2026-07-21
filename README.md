@@ -10,7 +10,7 @@ not call a cloud service.
 
 ## Repository layout
 
-- `apps/extension` — WXT, React, and TypeScript Chrome extension (next phase)
+- `apps/extension` — WXT, React, and TypeScript Chrome extension
 - `apps/native-host` — Go native host and local HTTP server
 - `docs` — architecture and implementation notes
 - `scripts` — Windows build and installation scripts (planned)
@@ -22,10 +22,15 @@ codec, bounded EPUB metadata validation, and a concurrency-safe in-memory
 transfer session store. It also includes RFC1918 LAN address selection and a
 hardened mobile HTTP download service with single-download claiming, safe
 headers, expiry enforcement, and failed-token rate limiting. The standalone Go
-native host now validates strict CREATE/CANCEL messages, serializes responses
-and completion events on stdout, and keeps active HTTP sessions alive for a
-bounded period after the Native Messaging pipe closes. The extension and
-installation scripts will arrive in focused follow-up batches.
+native host validates strict CREATE/CANCEL messages, serializes responses and
+completion events on stdout, and keeps active HTTP sessions alive for a bounded
+period after the Native Messaging pipe closes.
+
+The loadable Manifest V3 extension now has the minimal requested permission
+set, strict TypeScript protocol parsing, EPUB download detection and bounded
+deduplication, and a session-scoped pending-download queue. Persistent native
+communication, the QR transfer window, notifications, and Windows installation
+scripts will arrive in focused follow-up batches.
 
 ## Development
 

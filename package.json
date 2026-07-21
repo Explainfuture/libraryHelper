@@ -6,12 +6,12 @@
   "license": "MIT",
   "packageManager": "pnpm@10.28.1",
   "scripts": {
-    "build": "go build ./...",
+    "build": "pnpm --filter @bookbridge/extension build && go build ./...",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "go vet ./... && prettier --check .",
-    "test": "go test ./...",
-    "typecheck": "go test -run=^$ ./..."
+    "lint": "pnpm --filter @bookbridge/extension lint && go vet ./... && prettier --check .",
+    "test": "pnpm --filter @bookbridge/extension test && go test ./...",
+    "typecheck": "pnpm --filter @bookbridge/extension typecheck && go test -run=^$ ./..."
   },
   "devDependencies": {
     "prettier": "^3.6.2"
