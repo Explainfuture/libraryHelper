@@ -1,66 +1,195 @@
 # BookBridge
 
-BookBridge is an open-source, Windows-first tool for transferring EPUB files
-that the user has downloaded normally in Chrome to an iPhone on the same local
-network. It is designed to remain independent of book websites: it does not
-read cookies, credentials, authorization headers, or page content, and it does
-not call a cloud service.
+BookBridge 是一个开源、Windows 优先的本地 EPUB 传输工具。用户在 Chrome
+中正常下载 EPUB 后，扩展会把文件交给本机 Go 助手；助手只在局域网中创建
+一个五分钟临时地址，扩展自动弹出二维码窗口，iPhone 扫码即可下载原始
+EPUB，并从“文件”应用交给 Apple Books 打开。
 
-> Only transfer files that you have the right to use.
+BookBridge 与书籍网站完全解耦：不注入网页、不读取 Cookie、账号、密码、
+Authorization Header 或正文，不绕过网站下载限制，也不会把文件上传到云端。
 
-## Repository layout
+> 只传输你有权使用的文件。
 
-- `apps/extension` — WXT, React, and TypeScript Chrome extension
-- `apps/native-host` — Go native host and local HTTP server
-- `docs` — architecture and implementation notes
-- `scripts` — Windows build and installation scripts (planned)
+## 工作方式
 
-## Current development status
+1. Manifest V3 扩展监听 Chrome 已完成的下载，只接受 `.epub` 或
+   `application/epub+zip`。
+2. 扩展通过一个持久 Native Messaging 连接把本地路径发给
+   `com.bookbridge.host`。
+3. Go 助手校验 EPUB/ZIP 结构，在 RFC1918 私有 IPv4 地址上创建一次性临时
+   session。
+4. 扩展从 `chrome.storage.session` 读取不含本地路径的公开传输信息，显示本地
+   SVG 二维码、文件信息、倒计时、复制和取消操作。
+5. 手机完成文件下载后，Host 标记 session 为 completed，并把完成事件推送给
+   扩展。
 
-The native host currently includes the tested Chrome Native Messaging frame
-codec, bounded EPUB metadata validation, and a concurrency-safe in-memory
-transfer session store. It also includes RFC1918 LAN address selection and a
-hardened mobile HTTP download service with single-download claiming, safe
-headers, expiry enforcement, and failed-token rate limiting. The standalone Go
-native host validates strict CREATE/CANCEL messages, serializes responses and
-completion events on stdout, and keeps active HTTP sessions alive for a bounded
-period after the Native Messaging pipe closes.
+## 环境要求
 
-The loadable Manifest V3 extension now has the minimal requested permission
-set, strict TypeScript protocol parsing, EPUB download detection and bounded
-deduplication, and session-scoped transfer state. Its persistent Native
-Messaging client correlates requests, enforces timeouts, reconnects with
-exponential backoff, handles completion events, and reports an unavailable
-local helper through a Chrome notification. A successful transfer now opens a
-420×560 QR window backed only by session storage. It shows the public LAN URL,
-file metadata, live expiry countdown, copy and cancel controls, and completed,
-cancelled, or expired states. Windows installation scripts will arrive in the
-next focused batch.
-
-## Development
-
-Requirements:
-
-- Go 1.24 or newer
-- Node.js 22 or newer
+- Windows 10/11
+- Chrome
+- Go 1.24 或更新版本
+- Node.js 22 或更新版本
 - pnpm 10
+- 与电脑处于同一 Wi-Fi 的 iPhone
 
-Install JavaScript tooling and run the current checks:
+不需要管理员权限、Docker、数据库、云服务或常驻 Node.js 进程。正式运行时
+只有独立的 Go Native Host 进程由 Chrome 按需启动。
+
+## 安装
+
+在仓库根目录打开 PowerShell：
+
+```powershell
+pnpm install --frozen-lockfile
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 -SkipInstall
+```
+
+然后安装扩展和 Native Host：
+
+1. 打开 `chrome://extensions`，启用“开发者模式”。
+2. 点击“加载已解压的扩展程序”，选择
+   `apps\extension\.output\chrome-mv3`。
+3. 在扩展卡片上复制 32 位 Extension ID。
+4. 执行下面的命令，把占位符替换为实际 ID：
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-host.ps1 -ExtensionId <EXTENSION_ID>
+   ```
+
+5. 返回 `chrome://extensions`，点击 BookBridge 的“重新加载”。
+
+安装脚本会重新执行锁定依赖安装和生产构建，把 `bookbridge-host.exe` 与严格限制
+`allowed_origins` 的 manifest 写入 `%LOCALAPPDATA%\BookBridge`，并仅在当前用户的
+以下注册表位置注册：
+
+```text
+HKCU\Software\Google\Chrome\NativeMessagingHosts\com.bookbridge.host
+```
+
+如果 Windows 防火墙第一次弹出提示，只允许“专用网络”，不要允许公用网络。
+
+## 使用
+
+1. 确认 iPhone 与电脑连接同一个 Wi-Fi；访客网络、AP 隔离或 VPN 可能阻止两台
+   设备互访。
+2. 在 Chrome 中正常下载一个有效 EPUB。
+3. 下载完成后等待 BookBridge 自动打开二维码窗口。
+4. 用 iPhone 相机扫码，在 Safari 页面点击“下载 EPUB”。
+5. 在 iOS“文件”应用的“下载项”中找到文件，使用“共享”或长按菜单选择“图书”/
+   Apple Books。
+
+链接默认五分钟失效，只允许完整下载一次；取消、过期或成功下载后不能继续取得
+文件。`HEAD` 请求和页面预览不会消耗下载次数。
+
+## 开发
+
+常用命令：
 
 ```powershell
 pnpm install
-pnpm format:check
+pnpm dev
+pnpm format
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
 ```
 
-The native host codec can also be tested directly:
+`pnpm dev` 会启动 WXT 开发服务器，同时构建并监听 Go Native Host 源码。Native
+Host 不能像普通服务器一样手动启动；Chrome 会根据 Native Messaging 注册信息
+启动它。需要让开发扩展使用仓库中的热重建 executable 时，可直接执行：
 
 ```powershell
-go test ./...
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev.ps1 -ExtensionId <EXTENSION_ID>
 ```
+
+这会把当前用户注册表临时指向 `dist\native-host\bookbridge-host.exe`。结束开发后可
+重新运行 `install-host.ps1` 恢复 `%LOCALAPPDATA%` 中的稳定构建。
+
+`scripts\build.ps1` 生成：
+
+- Chrome 扩展：`apps\extension\.output\chrome-mv3`
+- Native Host：`dist\native-host\bookbridge-host.exe`
+
+这些目录是构建产物，不会提交到 Git。
+
+## 测试与质量检查
+
+```powershell
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test
+go test ./...
+pnpm build
+```
+
+Vitest 覆盖 EPUB 识别、下载去重、Native Messaging 超时/重连/协议校验、session
+存储、窗口参数、倒计时和取消编排。Go 测试覆盖长度前缀协议、EPUB 校验、随机
+token/session 生命周期、HTTP 安全头、中文文件名、无效 token、HEAD 语义、HTML
+转义、限流和网卡过滤。测试不依赖真实 Chrome 或真实网络环境。
+
+## 常见问题
+
+### 提示“BookBridge 本地助手未运行”
+
+- 确认已用当前扩展卡片显示的 ID 运行 `install-host.ps1`；重新加载目录可能产生
+  不同 ID。
+- 重新运行安装脚本，然后在 `chrome://extensions` 重新加载扩展。
+- 在扩展卡片的“Service worker”检查错误日志。
+- 确认 manifest 中的 executable 路径仍然存在，且安全软件没有隔离它。
+
+### 下载 EPUB 后没有二维码
+
+- 确认 Chrome 下载状态已经完成，文件后缀是 `.epub`，而不是 `.crdownload`、
+  `.part` 或 `.tmp`。
+- BookBridge 会拒绝空文件、符号链接、非 ZIP 文件，以及缺少
+  `META-INF/container.xml` 的伪 EPUB。
+- 查看扩展通知和 Service worker 日志中的结构化错误。
+
+### 手机打不开二维码地址
+
+- 两台设备必须在同一私有局域网，且不能处于启用了客户端隔离的访客 Wi-Fi。
+- 暂停可能接管路由的 VPN，再重试。
+- Windows 网络配置应为“专用网络”，防火墙弹窗只勾选专用网络。
+- 如果电脑没有可用的 `10/8`、`172.16/12` 或 `192.168/16` IPv4 地址，Host 会
+  返回 `NO_LAN_ADDRESS`。
+- 链接可能已经过期、取消或完成；重新下载 EPUB 会创建新链接。
+
+### 端口 18321 被占用
+
+Host 会在有限范围内尝试后续端口。二维码始终包含实际选中的端口，不需要手动
+修改地址。
+
+## 卸载
+
+先关闭 BookBridge 二维码窗口并在 Chrome 中移除扩展，然后执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall-host.ps1
+```
+
+卸载脚本只删除 BookBridge 的当前用户注册表项、`bookbridge-host.exe` 和生成的
+manifest。如果安装目录包含其他文件，它会保留目录和未知文件并给出警告。
+
+## 仓库结构
+
+- `apps/extension` — WXT、React、TypeScript 的 Chrome 扩展
+- `apps/native-host` — Go Native Host、EPUB 校验、session 与局域网 HTTP 服务
+- `scripts` — Windows 构建、安装、卸载和开发脚本
+- `docs` — 实施状态与架构说明
+
+## 安全边界
+
+- 扩展只申请 `downloads`、`nativeMessaging`、`notifications`、`storage` 和
+  `windows`，没有 `host_permissions`。
+- HTTP 服务只提供随机 token 对应的已校验 EPUB，不提供目录、上传、任意路径、
+  CORS 或调试接口。
+- token 使用至少 32 字节的 `crypto/rand` 数据；内存中只保存 SHA-256 哈希并用
+  常量时间比较。
+- 手机页面不加载外部 JavaScript、字体、统计、CDN 或第三方资源，并设置 CSP、
+  `no-referrer`、`nosniff` 和 `no-store`。
+- Native Messaging stdout 只承载长度前缀 JSON 协议，诊断只写 stderr。
 
 ## License
 

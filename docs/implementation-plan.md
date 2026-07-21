@@ -17,5 +17,7 @@ BookBridge will be delivered in small, independently verified batches:
      notifications.
    - **Complete:** Automatically opened QR transfer window, countdown, copying,
      cancellation, session-backed status updates, and terminal-state UI.
-6. Add Windows build, install, uninstall, and development scripts; then run the
-   complete lint, typecheck, test, build, and manual Chrome verification gates.
+6. **Complete:** Add Windows build, current-user install, safe uninstall, and
+   parallel WXT/Go development scripts; document Chrome/iPhone setup and run
+   the automated lint, typecheck, test, and build gates. Real Chrome, Windows
+   Firewall, and iPhone verification remains a manual release gate.
