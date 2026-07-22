@@ -269,15 +269,15 @@ try {
   try {
     await popupSession.send("Emulation.setDeviceMetricsOverride", {
       width: 360,
-      height: 580,
+      height: 430,
       deviceScaleFactor: 1,
       mobile: false,
     });
     const popupView = await waitForView(
       popupSession,
       (view) =>
-        view.text.includes("按需待机") &&
-        view.text.includes("按需启动，不常驻端口"),
+        view.text.includes("已开启") &&
+        view.text.includes("下载 EPUB 时自动启动，结束后关闭"),
       "idle BookBridge popup UI",
     );
     assert(
@@ -311,8 +311,7 @@ try {
     await waitForView(
       popupSession,
       (view) =>
-        view.text.includes("已暂停") &&
-        view.text.includes("本地 Server 已关闭"),
+        view.text.includes("已暂停") && view.text.includes("本地助手已关闭"),
       "paused BookBridge popup UI",
     );
     const pausedChecked = await evaluate(
@@ -327,7 +326,7 @@ try {
     );
     await waitForView(
       popupSession,
-      (view) => view.text.includes("按需待机"),
+      (view) => view.text.includes("已开启"),
       "resumed idle BookBridge popup UI",
     );
     process.stdout.write(

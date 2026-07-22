@@ -4,21 +4,9 @@ import type { BookBridgeRuntimeState } from "../../src/lifecycle/controller";
 import { parseRuntimeStateResponse } from "../../src/runtime/messages";
 
 const FLOW_STEPS = [
-  {
-    number: "1",
-    title: "下载 EPUB",
-    detail: "像平时一样在 Chrome 完成下载",
-  },
-  {
-    number: "2",
-    title: "扫描二维码",
-    detail: "BookBridge 会自动打开传输窗口",
-  },
-  {
-    number: "3",
-    title: "存入图书",
-    detail: "在 iPhone 上用 Apple Books 打开",
-  },
+  { number: "1", title: "下载" },
+  { number: "2", title: "扫码" },
+  { number: "3", title: "阅读" },
 ] as const;
 
 export function App() {
@@ -72,17 +60,14 @@ export function App() {
     }
   };
 
-  const badge = getBadge(runtimeState);
+  const badge = getBadge(runtimeState, error);
 
   return (
     <main className="popup-shell">
       <header className="navigation-bar">
         <div className="brand-lockup">
-          <img src="/icons/icon-48.png" alt="" width="42" height="42" />
-          <div>
-            <strong translate="no">BookBridge</strong>
-            <span>本地 EPUB 传输</span>
-          </div>
+          <img src="/icons/icon-48.png" alt="" width="36" height="36" />
+          <strong translate="no">BookBridge</strong>
         </div>
         <span className={`ready-badge ready-badge-${badge.tone}`}>
           <span aria-hidden="true" />
@@ -90,57 +75,41 @@ export function App() {
         </span>
       </header>
 
-      <section className="hero">
-        <span className="hero-symbol" aria-hidden="true">
-          ↗
-        </span>
-        <p className="eyebrow">从电脑发送到 iPhone</p>
-        <h1>下载完成，扫码阅读</h1>
-        <p className="summary">EPUB 不经过云端，只在你的局域网内传输。</p>
+      <section className="intro">
+        <p className="eyebrow">本地传书</p>
+        <h1>把 EPUB 送到 iPhone</h1>
+        <p>下载后自动出现二维码，不经过云端。</p>
       </section>
 
-      <section className="settings-group" aria-labelledby="service-heading">
-        <p className="section-label" id="service-heading">
-          本地助手
-        </p>
+      <section className="settings-group" aria-label="本地助手">
         <ServiceControl
           state={runtimeState}
           pending={pending}
           error={error}
+          onReload={() => {
+            chrome.runtime.reload();
+          }}
           onToggle={() => {
             void toggleEnabled();
           }}
         />
       </section>
 
-      <section className="steps-group" aria-labelledby="steps-heading">
-        <p className="section-label" id="steps-heading">
-          使用方法
-        </p>
+      <section className="flow-card" aria-label="使用方法">
         <ol className="flow">
           {FLOW_STEPS.map((step) => (
             <li key={step.number}>
               <span className="step-number">{step.number}</span>
-              <span className="step-copy">
-                <strong>{step.title}</strong>
-                <span>{step.detail}</span>
-              </span>
-              <span className="step-chevron" aria-hidden="true">
-                ›
-              </span>
+              <strong>{step.title}</strong>
             </li>
           ))}
         </ol>
+        <p>在 Chrome 下载 EPUB，接着用 iPhone 扫码。</p>
       </section>
 
       <footer className="privacy-note">
-        <span className="privacy-symbol" aria-hidden="true">
-          ✓
-        </span>
-        <span>
-          <strong>隐私优先</strong>
-          不读取网页、Cookie 或账号信息
-        </span>
+        <span aria-hidden="true">◆</span>
+        文件只在局域网内传输
       </footer>
     </main>
   );
@@ -150,66 +119,80 @@ function ServiceControl({
   state,
   pending,
   error,
+  onReload,
   onToggle,
 }: {
   state: BookBridgeRuntimeState | null;
   pending: boolean;
   error: string | null;
+  onReload: () => void;
   onToggle: () => void;
 }) {
   const enabled = state?.enabled ?? false;
   const running = state?.serverState === "running";
   const title =
-    state === null
-      ? "正在检查本地服务"
-      : !enabled
-        ? "BookBridge 已暂停"
-        : running
-          ? "本地传输正在运行"
-          : "按需启动，不常驻端口";
+    error !== null
+      ? "需要重新加载"
+      : state === null
+        ? "正在连接…"
+        : !enabled
+          ? "已暂停"
+          : running
+            ? "正在传输"
+            : "已开启";
   const detail =
-    state === null
-      ? "正在读取扩展状态…"
-      : !enabled
-        ? "不会响应新的 EPUB 下载，本地 Server 已关闭"
-        : running
-          ? `${state.activeTransferCount.toString()} 个临时链接正在提供服务`
-          : "检测到 EPUB 下载后才启动，结束后自动关闭";
+    error !== null
+      ? "安装更新后，重新加载扩展即可"
+      : state === null
+        ? "正在读取运行状态…"
+        : !enabled
+          ? "不会响应新的 EPUB 下载，本地助手已关闭"
+          : running
+            ? `${state.activeTransferCount.toString()} 个临时链接正在提供服务`
+            : "下载 EPUB 时自动启动，结束后关闭";
 
   return (
     <div className={`service-control ${enabled ? "" : "service-paused"}`}>
-      <span className="service-icon" aria-hidden="true">
-        {enabled ? "↔" : "Ⅱ"}
-      </span>
-      <div className="service-copy">
+      <div className="service-copy" aria-live="polite">
         <strong>{title}</strong>
         <span>{detail}</span>
-        {error === null ? null : <span className="service-error">{error}</span>}
       </div>
-      <button
-        className="service-switch"
-        type="button"
-        role="switch"
-        aria-checked={enabled}
-        aria-busy={pending}
-        aria-label={enabled ? "暂停 BookBridge" : "启用 BookBridge"}
-        disabled={state === null || pending}
-        onClick={onToggle}
-      >
-        <span className="switch-track" aria-hidden="true">
-          <span />
-        </span>
-      </button>
+      {error === null ? (
+        <button
+          className="service-switch"
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          aria-busy={pending}
+          aria-label={enabled ? "暂停 BookBridge" : "启用 BookBridge"}
+          disabled={state === null || pending}
+          onClick={onToggle}
+        >
+          <span className="switch-track" aria-hidden="true">
+            <span />
+          </span>
+        </button>
+      ) : (
+        <button className="reload-button" type="button" onClick={onReload}>
+          重新加载
+        </button>
+      )}
     </div>
   );
 }
 
-function getBadge(state: BookBridgeRuntimeState | null): {
+function getBadge(
+  state: BookBridgeRuntimeState | null,
+  error: string | null,
+): {
   label: string;
-  tone: "idle" | "running" | "paused";
+  tone: "idle" | "running" | "paused" | "warning";
 } {
+  if (error !== null) {
+    return { label: "需重载", tone: "warning" };
+  }
   if (state === null) {
-    return { label: "检查中", tone: "idle" };
+    return { label: "连接中", tone: "paused" };
   }
   if (!state.enabled) {
     return { label: "已暂停", tone: "paused" };
@@ -217,7 +200,7 @@ function getBadge(state: BookBridgeRuntimeState | null): {
   if (state.serverState === "running") {
     return { label: "传输中", tone: "running" };
   }
-  return { label: "按需待机", tone: "idle" };
+  return { label: "已开启", tone: "idle" };
 }
 
 async function requestRuntimeState(
