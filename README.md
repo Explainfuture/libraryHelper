@@ -68,6 +68,14 @@ HKCU\Software\Google\Chrome\NativeMessagingHosts\com.bookbridge.host
 
 如果 Windows 防火墙第一次弹出提示，只允许“专用网络”，不要允许公用网络。
 
+如果误选了公用网络，可在管理员 PowerShell 中运行下面的可选加固脚本。它只修改
+程序路径精确等于 `%LOCALAPPDATA%\BookBridge\bookbridge-host.exe` 的入站允许规则，
+不会改变 Windows 的网络类别或其他程序规则：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\set-firewall-private.ps1
+```
+
 ## 使用
 
 1. 确认 iPhone 与电脑连接同一个 Wi-Fi；访客网络、AP 隔离或 VPN 可能阻止两台
@@ -151,6 +159,15 @@ Messaging manifest 能无损保存该绝对路径。
 Windows 防火墙只允许专用网络，并用同一 Wi-Fi 下的真实 iPhone 完成一次扫码、下载与
 Apple Books 打开流程。自动化 Chromium 烟测不能替代这三项人工验收。
 
+仓库提供一个不含书籍正文的本地测试 EPUB 和临时下载页生成器，便于执行上述真实
+Chrome 验收。服务器只监听 loopback；完成浏览器下载后应立即停止：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\manual-acceptance-fixture.ps1
+# 在 Chrome 打开脚本输出的 URL 并下载测试 EPUB
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\manual-acceptance-fixture.ps1 -Stop
+```
+
 ## 常见问题
 
 ### 提示“BookBridge 本地助手未运行”
@@ -193,6 +210,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall-host.ps1
 
 卸载脚本只删除 BookBridge 的当前用户注册表项、`bookbridge-host.exe` 和生成的
 manifest。如果安装目录包含其他文件，它会保留目录和未知文件并给出警告。
+
+如果 Windows 曾为 Host 创建防火墙规则，再在管理员 PowerShell 中执行下面的命令以
+删除程序路径精确匹配 BookBridge 的规则；没有匹配规则时该命令也可安全重复运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\set-firewall-private.ps1 -Remove
+```
 
 ## 仓库结构
 

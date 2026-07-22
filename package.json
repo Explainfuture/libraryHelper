@@ -10,7 +10,7 @@
     "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "pnpm --filter @bookbridge/extension lint && go vet ./... && node --check scripts/smoke-extension-ui.mjs && prettier --check .",
+    "lint": "pnpm --filter @bookbridge/extension lint && go vet ./... && node --check scripts/smoke-extension-ui.mjs && node --check scripts/manual-acceptance-server.mjs && prettier --check .",
     "test": "pnpm --filter @bookbridge/extension test && go test ./...",
     "typecheck": "pnpm --filter @bookbridge/extension typecheck && go test -run=^$ ./..."
   },
