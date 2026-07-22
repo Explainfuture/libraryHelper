@@ -1,5 +1,6 @@
 export type NativeClientErrorCode =
   | "CLIENT_CLOSED"
+  | "CLIENT_STOPPED"
   | "DISCONNECTED"
   | "HOST_UNAVAILABLE"
   | "POST_FAILED"

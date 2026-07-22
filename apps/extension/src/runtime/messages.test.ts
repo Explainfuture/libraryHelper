@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { parseCancelTransferCommand, parseRuntimeResponse } from "./messages";
+import {
+  parseCancelTransferCommand,
+  parseGetRuntimeStateCommand,
+  parseRuntimeResponse,
+  parseRuntimeStateResponse,
+  parseSetEnabledCommand,
+} from "./messages";
 
 describe("extension runtime messages", () => {
   it("accepts a strict cancellation command", () => {
@@ -33,5 +39,51 @@ describe("extension runtime messages", () => {
       error: { code: "CANCEL_FAILED", message: "取消失败" },
     });
     expect(parseRuntimeResponse({ ok: true, extra: true })).toBeNull();
+  });
+
+  it("accepts strict runtime state commands", () => {
+    expect(parseGetRuntimeStateCommand({ type: "GET_RUNTIME_STATE" })).toEqual({
+      type: "GET_RUNTIME_STATE",
+    });
+    expect(
+      parseSetEnabledCommand({ type: "SET_ENABLED", enabled: false }),
+    ).toEqual({ type: "SET_ENABLED", enabled: false });
+    expect(
+      parseSetEnabledCommand({
+        type: "SET_ENABLED",
+        enabled: false,
+        extra: true,
+      }),
+    ).toBeNull();
+  });
+
+  it("parses strict runtime state responses", () => {
+    expect(
+      parseRuntimeStateResponse({
+        ok: true,
+        state: {
+          enabled: true,
+          serverState: "stopped",
+          activeTransferCount: 0,
+        },
+      }),
+    ).toEqual({
+      ok: true,
+      state: {
+        enabled: true,
+        serverState: "stopped",
+        activeTransferCount: 0,
+      },
+    });
+    expect(
+      parseRuntimeStateResponse({
+        ok: true,
+        state: {
+          enabled: true,
+          serverState: "starting",
+          activeTransferCount: 0,
+        },
+      }),
+    ).toBeNull();
   });
 });

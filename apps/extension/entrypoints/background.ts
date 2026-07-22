@@ -1,4 +1,5 @@
 import { DownloadCoordinator } from "../src/downloads/coordinator";
+import { LifecycleController } from "../src/lifecycle/controller";
 import {
   connectBookBridgeNativePort,
   getChromeRuntimeLastError,
@@ -8,10 +9,13 @@ import { isNativeHostUnavailable, NativeHostError } from "../src/native/errors";
 import { showTransferError, showWindowError } from "../src/notifications";
 import {
   parseCancelTransferCommand,
+  parseGetRuntimeStateCommand,
+  parseSetEnabledCommand,
   type RuntimeErrorResponse,
 } from "../src/runtime/messages";
 import type { TransferCreatedMessage } from "../src/protocol/messages";
 import { PendingDownloadQueue } from "../src/storage/pending-downloads";
+import { SettingsStore } from "../src/storage/settings";
 import { TransferStore } from "../src/storage/transfers";
 import { TransferService } from "../src/transfers/service";
 import { createTransferWindowOptions } from "../src/windows";
@@ -19,6 +23,7 @@ import { createTransferWindowOptions } from "../src/windows";
 export default defineBackground(() => {
   const pendingDownloads = new PendingDownloadQueue(chrome.storage.session);
   const transfers = new TransferStore(chrome.storage.session);
+  const settings = new SettingsStore(chrome.storage.local);
   const nativeClient = new NativeClient({
     connect: connectBookBridgeNativePort,
     getLastError: getChromeRuntimeLastError,
@@ -27,6 +32,14 @@ export default defineBackground(() => {
     nativeClient,
     pendingDownloads,
     transfers,
+  });
+  const lifecycle = new LifecycleController({
+    nativeClient,
+    transfers,
+    settings,
+    onError: (error) => {
+      console.error("BookBridge lifecycle reconciliation failed", error);
+    },
   });
   const coordinator = new DownloadCoordinator({
     search: async (downloadId) =>
@@ -38,10 +51,18 @@ export default defineBackground(() => {
         })),
       ),
     onEligible: async (download) => {
+      if (!(await lifecycle.beginTransferAttempt())) {
+        return;
+      }
       let transfer: TransferCreatedMessage;
       try {
         transfer = await transferService.create(download);
       } catch (error: unknown) {
+        await lifecycle.transferFailed();
+        const state = await lifecycle.getState();
+        if (!state.enabled) {
+          return;
+        }
         try {
           await showTransferError(error);
         } catch (notificationError: unknown) {
@@ -51,6 +72,11 @@ export default defineBackground(() => {
           );
         }
         throw error;
+      }
+      try {
+        await lifecycle.transferCreated();
+      } catch (error: unknown) {
+        console.error("BookBridge failed to schedule host shutdown", error);
       }
       try {
         await chrome.windows.create(
@@ -74,14 +100,16 @@ export default defineBackground(() => {
   });
 
   nativeClient.onTransferCompleted((message) => {
-    void transferService.complete(message).catch((error: unknown) => {
-      console.error("BookBridge failed to store transfer completion", error);
-    });
+    void transferService
+      .complete(message)
+      .then(() => lifecycle.transferSettled())
+      .catch((error: unknown) => {
+        console.error("BookBridge failed to store transfer completion", error);
+      });
   });
-  nativeClient.start();
 
   chrome.runtime.onSuspend.addListener(() => {
-    nativeClient.dispose();
+    lifecycle.dispose();
   });
 
   chrome.runtime.onMessage.addListener(
@@ -90,12 +118,56 @@ export default defineBackground(() => {
       if (command === null) {
         return false;
       }
-      void transferService.cancel(command.transferId).then(
-        () => {
+      void transferService
+        .cancel(command.transferId)
+        .then(async () => {
+          await lifecycle.transferSettled();
           sendResponse({ ok: true });
-        },
-        (error: unknown) => {
+        })
+        .catch((error: unknown) => {
           sendResponse(toRuntimeError(error));
+        });
+      return true;
+    },
+  );
+
+  chrome.runtime.onMessage.addListener(
+    (message: unknown, _sender, sendResponse) => {
+      const getState = parseGetRuntimeStateCommand(message);
+      if (getState !== null) {
+        void lifecycle.getState().then(
+          (state) => {
+            sendResponse({ ok: true, state });
+          },
+          () => {
+            sendResponse({
+              ok: false,
+              error: {
+                code: "STATE_FAILED",
+                message: "无法读取 BookBridge 运行状态。",
+              },
+            });
+          },
+        );
+        return true;
+      }
+
+      const setEnabled = parseSetEnabledCommand(message);
+      if (setEnabled === null) {
+        return false;
+      }
+      void lifecycle.setEnabled(setEnabled.enabled).then(
+        (state) => {
+          sendResponse({ ok: true, state });
+        },
+        () => {
+          sendResponse({
+            ok: false,
+            error: {
+              code: "SETTINGS_FAILED",
+              message: "无法更新 BookBridge 运行状态。",
+            },
+          });
         },
       );
       return true;

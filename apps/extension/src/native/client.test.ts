@@ -218,6 +218,56 @@ describe("NativeClient", () => {
     client.dispose();
   });
 
+  it("stops the host without permanently closing the reusable client", async () => {
+    const first = new FakePort();
+    const second = new FakePort();
+    const connect = vi
+      .fn<() => FakePort>()
+      .mockReturnValueOnce(first)
+      .mockReturnValueOnce(second);
+    const client = new NativeClient({ connect });
+
+    const firstRequest = client.createTransfer("C:/Downloads/one.epub", 11);
+    const firstMessage = first.messages[0];
+    if (firstMessage === undefined) {
+      throw new Error("first request was not posted");
+    }
+    first.emitMessage(createdResponse(firstMessage.requestId, "transfer-11"));
+    await firstRequest;
+
+    client.stop();
+    expect(first.disconnected).toBe(true);
+
+    const secondRequest = client.createTransfer("C:/Downloads/two.epub", 12);
+    const secondMessage = second.messages[0];
+    if (secondMessage === undefined) {
+      throw new Error("second request was not posted");
+    }
+    second.emitMessage(createdResponse(secondMessage.requestId, "transfer-12"));
+    await expect(secondRequest).resolves.toMatchObject({
+      payload: { transferId: "transfer-12" },
+    });
+    expect(connect).toHaveBeenCalledTimes(2);
+    client.dispose();
+  });
+
+  it("cancels a scheduled reconnect when stopped", async () => {
+    vi.useFakeTimers();
+    const port = new FakePort();
+    const connect = vi.fn(() => port);
+    const client = new NativeClient({
+      connect,
+      initialReconnectDelayMs: 50,
+    });
+    client.start();
+    port.emitDisconnect();
+    client.stop();
+
+    await vi.advanceTimersByTimeAsync(100);
+    expect(connect).toHaveBeenCalledTimes(1);
+    client.dispose();
+  });
+
   it("does not reconnect after disposal", async () => {
     vi.useFakeTimers();
     const port = new FakePort();

@@ -68,6 +68,20 @@ describe("TransferStore", () => {
       { ...payload("transfer-5", "five.epub"), status: "active" },
     ]);
   });
+
+  it("cancels every active record when the runtime pauses", async () => {
+    const storage = new MemoryStorage();
+    const store = new TransferStore(storage);
+    await store.save(payload("transfer-6", "six.epub"));
+    await store.save(payload("transfer-7", "seven.epub"));
+    await store.markCompleted("transfer-7");
+
+    await expect(store.cancelActive()).resolves.toBe(1);
+    await expect(store.list()).resolves.toMatchObject([
+      { transferId: "transfer-6", status: "cancelled" },
+      { transferId: "transfer-7", status: "completed" },
+    ]);
+  });
 });
 
 function payload(transferId: string, filename: string) {

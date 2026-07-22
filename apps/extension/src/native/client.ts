@@ -52,9 +52,9 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 const DEFAULT_INITIAL_RECONNECT_DELAY_MS = 500;
 const DEFAULT_MAX_RECONNECT_DELAY_MS = 30_000;
 
-// Owns one persistent Native Messaging port. Requests are correlated by ID,
-// while disconnects reject in-flight work and trigger bounded exponential
-// reconnect attempts.
+// Owns an on-demand Native Messaging port. Requests are correlated by ID,
+// while unexpected disconnects during an active transfer window trigger
+// bounded exponential reconnect attempts.
 export class NativeClient {
   readonly #connect: NativeClientOptions["connect"];
   readonly #getLastError: NonNullable<NativeClientOptions["getLastError"]>;
@@ -136,11 +136,10 @@ export class NativeClient {
     return () => this.#completionListeners.delete(listener);
   }
 
-  dispose(): void {
+  stop(): void {
     if (this.#closed) {
       return;
     }
-    this.#closed = true;
     this.#active = false;
     if (this.#reconnectTimeout !== undefined) {
       clearTimeout(this.#reconnectTimeout);
@@ -156,9 +155,19 @@ export class NativeClient {
         // The browser may already have closed the native port.
       }
     }
+    this.#nextReconnectDelayMs = this.#initialReconnectDelayMs;
+    this.#lastConnectionError = undefined;
     this.#rejectPending(
-      new NativeClientError("CLIENT_CLOSED", "native client is closed"),
+      new NativeClientError("CLIENT_STOPPED", "native client was stopped"),
     );
+  }
+
+  dispose(): void {
+    if (this.#closed) {
+      return;
+    }
+    this.stop();
+    this.#closed = true;
     this.#completionListeners.clear();
   }
 

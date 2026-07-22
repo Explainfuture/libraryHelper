@@ -47,6 +47,22 @@ export class TransferStore {
     return this.#markStatus(transferId, "cancelled");
   }
 
+  cancelActive(): Promise<number> {
+    let cancelled = 0;
+    return this.#enqueue(async () => {
+      const transfers = await this.#load();
+      for (const transfer of transfers) {
+        if (transfer.status === "active") {
+          transfer.status = "cancelled";
+          cancelled += 1;
+        }
+      }
+      if (cancelled > 0) {
+        await this.#write(transfers);
+      }
+    }).then(() => cancelled);
+  }
+
   async get(transferId: string): Promise<StoredTransfer | undefined> {
     await this.#tail;
     const transfers = await this.#load();
