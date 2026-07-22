@@ -4,14 +4,18 @@ import type { BookBridgeRuntimeState } from "../../src/lifecycle/controller";
 import { parseRuntimeStateResponse } from "../../src/runtime/messages";
 
 const FLOW_STEPS = [
-  { number: "01", title: "下载 EPUB", detail: "像平时一样在 Chrome 完成下载" },
   {
-    number: "02",
+    number: "1",
+    title: "下载 EPUB",
+    detail: "像平时一样在 Chrome 完成下载",
+  },
+  {
+    number: "2",
     title: "扫描二维码",
     detail: "BookBridge 会自动打开传输窗口",
   },
   {
-    number: "03",
+    number: "3",
     title: "存入图书",
     detail: "在 iPhone 上用 Apple Books 打开",
   },
@@ -72,7 +76,7 @@ export function App() {
 
   return (
     <main className="popup-shell">
-      <header className="brand-row">
+      <header className="navigation-bar">
         <div className="brand-lockup">
           <img src="/icons/icon-48.png" alt="" width="42" height="42" />
           <div>
@@ -87,10 +91,17 @@ export function App() {
       </header>
 
       <section className="hero">
-        <p className="eyebrow">DOWNLOAD · SCAN · READ</p>
-        <h1>下载完成，二维码自动出现</h1>
-        <p className="summary">
-          无需上传云端。EPUB 只在电脑与手机之间的局域网内传输。
+        <span className="hero-symbol" aria-hidden="true">
+          ↗
+        </span>
+        <p className="eyebrow">从电脑发送到 iPhone</p>
+        <h1>下载完成，扫码阅读</h1>
+        <p className="summary">EPUB 不经过云端，只在你的局域网内传输。</p>
+      </section>
+
+      <section className="settings-group" aria-labelledby="service-heading">
+        <p className="section-label" id="service-heading">
+          本地助手
         </p>
         <ServiceControl
           state={runtimeState}
@@ -102,21 +113,34 @@ export function App() {
         />
       </section>
 
-      <ol className="flow" aria-label="使用步骤">
-        {FLOW_STEPS.map((step) => (
-          <li key={step.number}>
-            <span className="step-number">{step.number}</span>
-            <span className="step-copy">
-              <strong>{step.title}</strong>
-              <span>{step.detail}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
+      <section className="steps-group" aria-labelledby="steps-heading">
+        <p className="section-label" id="steps-heading">
+          使用方法
+        </p>
+        <ol className="flow">
+          {FLOW_STEPS.map((step) => (
+            <li key={step.number}>
+              <span className="step-number">{step.number}</span>
+              <span className="step-copy">
+                <strong>{step.title}</strong>
+                <span>{step.detail}</span>
+              </span>
+              <span className="step-chevron" aria-hidden="true">
+                ›
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <footer className="privacy-note">
-        <span aria-hidden="true">✓</span>
-        不读取网页、Cookie 或账号信息
+        <span className="privacy-symbol" aria-hidden="true">
+          ✓
+        </span>
+        <span>
+          <strong>隐私优先</strong>
+          不读取网页、Cookie 或账号信息
+        </span>
       </footer>
     </main>
   );
@@ -154,6 +178,9 @@ function ServiceControl({
 
   return (
     <div className={`service-control ${enabled ? "" : "service-paused"}`}>
+      <span className="service-icon" aria-hidden="true">
+        {enabled ? "↔" : "Ⅱ"}
+      </span>
       <div className="service-copy">
         <strong>{title}</strong>
         <span>{detail}</span>
@@ -164,6 +191,7 @@ function ServiceControl({
         type="button"
         role="switch"
         aria-checked={enabled}
+        aria-busy={pending}
         aria-label={enabled ? "暂停 BookBridge" : "启用 BookBridge"}
         disabled={state === null || pending}
         onClick={onToggle}
@@ -171,7 +199,6 @@ function ServiceControl({
         <span className="switch-track" aria-hidden="true">
           <span />
         </span>
-        <span>{pending ? "处理中" : enabled ? "暂停" : "启用"}</span>
       </button>
     </div>
   );

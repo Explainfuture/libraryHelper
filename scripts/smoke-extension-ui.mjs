@@ -269,7 +269,7 @@ try {
   try {
     await popupSession.send("Emulation.setDeviceMetricsOverride", {
       width: 360,
-      height: 520,
+      height: 580,
       deviceScaleFactor: 1,
       mobile: false,
     });
@@ -346,7 +346,7 @@ try {
         url: transferURL,
         type: "popup",
         width: 420,
-        height: 560,
+        height: 600,
         focused: true,
       })});
       return {
@@ -362,7 +362,7 @@ try {
   assert(windowDetails.type === "popup", "Transfer window is not a popup.");
   assert(
     Math.abs(windowDetails.width - 420) <= 1 &&
-      Math.abs(windowDetails.height - 560) <= 1,
+      Math.abs(windowDetails.height - 600) <= 1,
     `Transfer window dimensions are ${windowDetails.width}x${windowDetails.height}.`,
   );
   assert(windowDetails.focused === true, "Transfer window was not focused.");
@@ -455,7 +455,7 @@ try {
   }
 
   process.stdout.write(
-    `Transfer window: focused popup requested at 420x560, reported as ${windowDetails.width}x${windowDetails.height}\n`,
+    `Transfer window: focused popup requested at 420x600, reported as ${windowDetails.width}x${windowDetails.height}\n`,
   );
   process.stdout.write(
     "Transfer UI: filename, size, QR, countdown, copy/cancel buttons, and LAN reminder\n",

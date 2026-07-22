@@ -1,16 +1,17 @@
 :root {
-  color: #1c2925;
-  background: #f2efe7;
+  color: #1c1c1e;
+  background: #f2f2f7;
   color-scheme: light;
   font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   font-synthesis: none;
+  --ios-blue: #007aff;
+  --ios-green: #34c759;
+  --ios-red: #ff3b30;
+  --ios-label: #1c1c1e;
+  --ios-secondary: #6e6e73;
+  --ios-tertiary: #8e8e93;
+  --ios-separator: rgb(60 60 67 / 14%);
 }
 
 * {
@@ -19,28 +20,36 @@
 
 body {
   width: 360px;
-  min-height: 520px;
+  min-height: 580px;
   margin: 0;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 0% 0%, rgb(226 183 102 / 29%), transparent 32%),
-    radial-gradient(circle at 100% 65%, rgb(32 97 77 / 12%), transparent 36%),
-    #f2efe7;
+    radial-gradient(circle at 88% -4%, rgb(10 132 255 / 16%), transparent 28%),
+    #f2f2f7;
+}
+
+button {
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .popup-shell {
-  min-height: 520px;
-  padding: 17px;
+  min-height: 580px;
+  padding: 16px 16px 14px;
 }
 
-.brand-row,
-.brand-lockup {
+.navigation-bar,
+.brand-lockup,
+.service-control,
+.privacy-note {
   display: flex;
   align-items: center;
 }
 
-.brand-row {
+.navigation-bar {
   justify-content: space-between;
+  min-height: 44px;
 }
 
 .brand-lockup {
@@ -51,277 +60,357 @@ body {
 .brand-lockup img {
   display: block;
   flex: 0 0 auto;
-  border-radius: 12px;
-  box-shadow: 0 7px 18px rgb(23 63 53 / 18%);
+  border-radius: 11px;
+  box-shadow:
+    0 5px 14px rgb(0 0 0 / 12%),
+    0 1px 2px rgb(0 0 0 / 8%);
 }
 
 .brand-lockup strong,
-.brand-lockup span {
+.brand-lockup span,
+.privacy-note strong,
+.privacy-note > span,
+.service-copy strong,
+.service-copy span,
+.step-copy strong,
+.step-copy > span {
   display: block;
 }
 
 .brand-lockup strong {
   font-size: 15px;
-  letter-spacing: -0.025em;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .brand-lockup span {
-  margin-top: 1px;
-  color: #75817c;
-  font-size: 9px;
+  margin-top: 2px;
+  color: var(--ios-secondary);
+  font-size: 10px;
 }
 
 .ready-badge {
   display: inline-flex;
+  min-height: 26px;
+  flex: 0 0 auto;
   gap: 6px;
   align-items: center;
-  padding: 6px 9px;
-  border: 1px solid rgb(31 111 81 / 11%);
+  padding: 5px 9px;
   border-radius: 999px;
-  background: #e2eee8;
-  color: #216449;
-  font-size: 9px;
-  font-weight: 800;
+  background: rgb(52 199 89 / 12%);
+  color: #248a3d;
+  font-size: 10px;
+  font-weight: 650;
 }
 
 .ready-badge > span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #2b8963;
-  box-shadow: 0 0 0 3px rgb(43 137 99 / 12%);
+  background: currentcolor;
 }
 
 .ready-badge-running {
-  background: #d9eee3;
-  color: #145d3f;
+  background: rgb(0 122 255 / 12%);
+  color: var(--ios-blue);
 }
 
 .ready-badge-paused {
-  border-color: rgb(113 96 70 / 12%);
-  background: #ebe7df;
-  color: #716657;
-}
-
-.ready-badge-paused > span {
-  background: #8b8173;
-  box-shadow: 0 0 0 3px rgb(139 129 115 / 12%);
+  background: rgb(142 142 147 / 14%);
+  color: var(--ios-secondary);
 }
 
 .hero {
-  margin: 18px 0 14px;
-  padding: 18px;
-  border: 1px solid rgb(36 66 56 / 9%);
-  border-radius: 20px;
-  background: rgb(255 254 250 / 88%);
-  box-shadow: 0 16px 42px rgb(39 55 49 / 8%);
+  position: relative;
+  min-height: 142px;
+  margin: 16px 0 18px;
+  padding: 22px 70px 20px 20px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #087cf0 0%, #4d9fff 100%);
+  box-shadow: 0 12px 32px rgb(0 85 190 / 22%);
+  color: #fff;
+}
+
+.hero::after {
+  position: absolute;
+  right: -42px;
+  bottom: -58px;
+  width: 150px;
+  height: 150px;
+  border: 28px solid rgb(255 255 255 / 11%);
+  border-radius: 50%;
+  content: "";
+}
+
+.hero-symbol {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 17%);
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1;
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
 }
 
 .eyebrow {
   margin: 0 0 7px;
-  color: #9b6d28;
-  font-size: 8px;
-  font-weight: 850;
-  letter-spacing: 0.13em;
+  color: rgb(255 255 255 / 76%);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 h1 {
   margin: 0;
-  max-width: 270px;
-  font-size: 24px;
-  line-height: 1.18;
+  font-size: 27px;
+  line-height: 1.12;
   letter-spacing: -0.045em;
   text-wrap: balance;
 }
 
 .summary {
+  max-width: 225px;
   margin: 10px 0 0;
-  color: #66736e;
-  font-size: 11px;
-  line-height: 1.65;
+  color: rgb(255 255 255 / 82%);
+  font-size: 12px;
+  line-height: 1.5;
   text-wrap: pretty;
 }
 
-.service-control {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 14px;
-  padding: 10px 11px;
-  border: 1px solid rgb(31 103 78 / 11%);
-  border-radius: 13px;
-  background: #e7f0eb;
+.section-label {
+  margin: 0 0 7px 4px;
+  color: var(--ios-secondary);
+  font-size: 11px;
+  font-weight: 500;
 }
 
-.service-paused {
-  border-color: rgb(113 96 70 / 10%);
-  background: #eeeae3;
+.settings-group,
+.steps-group {
+  margin-bottom: 16px;
+}
+
+.service-control,
+.flow {
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+}
+
+.service-control {
+  min-height: 70px;
+  gap: 11px;
+  padding: 11px 13px;
+}
+
+.service-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--ios-blue);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.service-paused .service-icon {
+  background: var(--ios-tertiary);
+  font-size: 13px;
 }
 
 .service-copy {
   min-width: 0;
-}
-
-.service-copy strong,
-.service-copy span {
-  display: block;
+  flex: 1;
 }
 
 .service-copy strong {
-  color: #29473d;
-  font-size: 10px;
+  color: var(--ios-label);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .service-copy span {
-  margin-top: 2px;
-  color: #718078;
-  font-size: 8px;
-  line-height: 1.4;
+  margin-top: 3px;
+  color: var(--ios-secondary);
+  font-size: 9px;
+  line-height: 1.35;
   text-wrap: pretty;
 }
 
 .service-copy .service-error {
-  color: #a24132;
+  color: var(--ios-red);
 }
 
 .service-switch {
-  display: grid;
-  min-width: 52px;
+  display: block;
+  width: 51px;
+  min-width: 51px;
+  height: 31px;
   flex: 0 0 auto;
-  gap: 3px;
-  justify-items: center;
-  padding: 4px;
+  padding: 0;
   border: 0;
+  border-radius: 999px;
   background: transparent;
-  color: #365a4d;
-  font: inherit;
-  font-size: 8px;
-  font-weight: 800;
   cursor: pointer;
-  touch-action: manipulation;
 }
 
 .service-switch:focus-visible {
-  border-radius: 9px;
-  outline: 3px solid rgb(33 112 88 / 28%);
-  outline-offset: 2px;
+  outline: 3px solid rgb(0 122 255 / 28%);
+  outline-offset: 3px;
 }
 
 .service-switch:disabled {
   cursor: wait;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .switch-track {
   position: relative;
   display: block;
-  width: 34px;
-  height: 19px;
-  border-radius: 999px;
-  background: #28755b;
+  width: 51px;
+  height: 31px;
+  border-radius: inherit;
+  background: var(--ios-green);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 4%);
 }
 
 .switch-track > span {
   position: absolute;
-  top: 3px;
-  left: 18px;
-  width: 13px;
-  height: 13px;
-  margin: 0;
+  top: 2px;
+  left: 22px;
+  width: 27px;
+  height: 27px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 2px 5px rgb(28 59 49 / 22%);
+  box-shadow:
+    0 2px 5px rgb(0 0 0 / 20%),
+    0 1px 1px rgb(0 0 0 / 8%);
 }
 
 .service-paused .switch-track {
-  background: #aaa094;
+  background: #e9e9ea;
 }
 
 .service-paused .switch-track > span {
-  left: 3px;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .switch-track {
-    transition: background-color 140ms ease;
-  }
-
-  .switch-track > span {
-    transition: left 140ms ease;
-  }
+  left: 2px;
 }
 
 .flow {
-  display: grid;
-  gap: 5px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .flow li {
+  position: relative;
   display: flex;
-  gap: 10px;
+  min-height: 52px;
+  gap: 11px;
   align-items: center;
-  padding: 8px 9px;
-  border-radius: 12px;
+  padding: 8px 12px;
 }
 
-.flow li:nth-child(2) {
-  background: rgb(255 253 247 / 72%);
+.flow li + li::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 53px;
+  height: 1px;
+  background: var(--ios-separator);
+  content: "";
 }
 
 .step-number {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid #dad4c8;
   border-radius: 9px;
-  color: #92703c;
-  font-size: 8px;
-  font-weight: 850;
+  background: rgb(0 122 255 / 11%);
+  color: var(--ios-blue);
+  font-size: 13px;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+
+.flow li:nth-child(2) .step-number {
+  background: rgb(175 82 222 / 12%);
+  color: #af52de;
+}
+
+.flow li:nth-child(3) .step-number {
+  background: rgb(255 159 10 / 14%);
+  color: #c93400;
 }
 
 .step-copy {
   min-width: 0;
-}
-
-.step-copy strong,
-.step-copy > span {
-  display: block;
+  flex: 1;
 }
 
 .step-copy strong {
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .step-copy > span {
-  margin-top: 1px;
-  color: #79827e;
+  margin-top: 2px;
+  color: var(--ios-secondary);
   font-size: 9px;
+}
+
+.step-chevron {
+  color: #c7c7cc;
+  font-size: 22px;
+  font-weight: 300;
 }
 
 .privacy-note {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  margin: 10px 3px 0;
-  color: #66736e;
+  gap: 9px;
+  margin: -2px 4px 0;
+  color: var(--ios-secondary);
   font-size: 9px;
+  line-height: 1.35;
 }
 
-.privacy-note > span {
-  display: grid;
-  width: 19px;
-  height: 19px;
+.privacy-note strong {
+  color: #3a3a3c;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.privacy-symbol {
+  display: grid !important;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
-  background: #dfece5;
-  color: #216449;
-  font-size: 9px;
-  font-weight: 900;
+  background: rgb(52 199 89 / 12%);
+  color: #248a3d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .switch-track {
+    transition: background-color 180ms ease;
+  }
+
+  .switch-track > span {
+    transition: left 180ms ease;
+  }
 }

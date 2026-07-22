@@ -95,7 +95,7 @@ function TransferCard({
             height="44"
           />
           <div>
-            <p className="eyebrow">PRIVATE EPUB DELIVERY</p>
+            <p className="eyebrow">本地安全传输</p>
             <h1 translate="no">BookBridge</h1>
           </div>
         </div>
@@ -107,7 +107,7 @@ function TransferCard({
           <span>EPUB</span>
         </div>
         <div className="file-copy">
-          <p className="file-label">准备发送</p>
+          <p className="file-label">EPUB 文档</p>
           <h2 title={transfer.filename}>{transfer.filename}</h2>
           <p className="file-meta">{formatFileSize(transfer.size)} · EPUB</p>
         </div>
@@ -117,8 +117,8 @@ function TransferCard({
         <section className="transfer-panel">
           <div className="panel-heading">
             <div>
-              <p className="panel-label">扫码接收</p>
-              <h2>用 iPhone 相机打开</h2>
+              <p className="panel-label">扫描二维码</p>
+              <h2>用 iPhone 相机扫描</h2>
             </div>
             <p className="countdown" aria-live="polite">
               <span>剩余有效时间</span>
@@ -177,10 +177,10 @@ function TransferCard({
 
       <footer className="lan-tip">
         <span className="lan-icon" aria-hidden="true">
-          ✓
+          ⌁
         </span>
         <span>
-          <strong>仅在本地网络传输</strong>
+          <strong>点对点本地传输</strong>
           手机和电脑必须连接同一局域网
         </span>
       </footer>

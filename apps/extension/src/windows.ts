@@ -1,6 +1,6 @@
 export interface TransferWindowOptions {
   focused: true;
-  height: 560;
+  height: 600;
   type: "popup";
   url: string;
   width: 420;
@@ -17,7 +17,7 @@ export function createTransferWindowOptions(
   url.searchParams.set("transferId", transferId);
   return {
     focused: true,
-    height: 560,
+    height: 600,
     type: "popup",
     url: url.toString(),
     width: 420,

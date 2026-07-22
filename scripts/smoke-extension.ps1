@@ -153,7 +153,7 @@ $arguments = @(
     '--no-first-run',
     '--no-default-browser-check',
     '--window-position=-32000,-32000',
-    '--window-size=420,560',
+    '--window-size=420,600',
     '--remote-debugging-port=0',
     ('--user-data-dir="{0}"' -f $profilePath),
     ('--disable-extensions-except="{0}"' -f $extensionPath),

@@ -7,6 +7,7 @@ dist/
 build/
 coverage/
 output/playwright/
+output/playwright-ios/
 
 # Go build and test output
 *.exe

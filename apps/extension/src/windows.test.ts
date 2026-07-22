@@ -11,7 +11,7 @@ describe("createTransferWindowOptions", () => {
 
     expect(options).toEqual({
       focused: true,
-      height: 560,
+      height: 600,
       type: "popup",
       url: "chrome-extension://extension-id/transfer.html?transferId=transfer%2F%E5%90%AB%E7%A9%BA%E6%A0%BC",
       width: 420,
