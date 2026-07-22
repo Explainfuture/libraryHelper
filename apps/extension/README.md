@@ -10,8 +10,10 @@ The current increment provides:
 - bounded download-ID deduplication and a bounded queue in
   `chrome.storage.session`;
 - strict runtime parsing for the native messaging protocol;
-- one persistent Native Messaging connection with request correlation,
-  timeouts, exponential-backoff reconnects, and structured error handling;
+- an on-demand Native Messaging connection with request correlation, timeouts,
+  exponential-backoff reconnects, and structured error handling;
+- automatic Native Host shutdown after the last transfer completes, is
+  cancelled, or expires, plus a popup pause/resume control;
 - session-scoped public transfer records that never contain a local path; and
 - an automatically opened QR transfer window with a live countdown, copy and
   cancel controls, and completed, cancelled, and expired states.

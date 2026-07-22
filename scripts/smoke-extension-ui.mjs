@@ -257,6 +257,87 @@ let transferWindowId;
 let pageSession;
 
 try {
+  const popupTarget = await waitForTarget(
+    (target) =>
+      target.type === "page" &&
+      target.url === `chrome-extension://${extensionId}/popup.html`,
+    "BookBridge popup page",
+  );
+  const popupSession = await CdpSession.connect(
+    popupTarget.webSocketDebuggerUrl,
+  );
+  try {
+    await popupSession.send("Emulation.setDeviceMetricsOverride", {
+      width: 360,
+      height: 520,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    const popupView = await waitForView(
+      popupSession,
+      (view) =>
+        view.text.includes("按需待机") &&
+        view.text.includes("按需启动，不常驻端口"),
+      "idle BookBridge popup UI",
+    );
+    assert(
+      popupView.viewport.scrollWidth <= popupView.viewport.width &&
+        popupView.viewport.scrollHeight <= popupView.viewport.height,
+      `Popup UI overflows: ${JSON.stringify(popupView.viewport)}.`,
+    );
+    const initialSwitch = await evaluate(
+      popupSession,
+      `(() => {
+        const control = document.querySelector('button[role="switch"]');
+        return {
+          count: document.querySelectorAll('button[role="switch"]').length,
+          checked: control?.getAttribute("aria-checked") ?? "",
+          disabled: control?.disabled ?? true,
+        };
+      })()`,
+    );
+    assert(
+      initialSwitch.count === 1 &&
+        initialSwitch.checked === "true" &&
+        initialSwitch.disabled === false,
+      `Popup switch is not enabled and accessible: ${JSON.stringify(initialSwitch)}.`,
+    );
+    await captureScreenshot(popupSession, "extension-popup.png");
+
+    await evaluate(
+      popupSession,
+      `document.querySelector('button[role="switch"]')?.click()`,
+    );
+    await waitForView(
+      popupSession,
+      (view) =>
+        view.text.includes("已暂停") &&
+        view.text.includes("本地 Server 已关闭"),
+      "paused BookBridge popup UI",
+    );
+    const pausedChecked = await evaluate(
+      popupSession,
+      `document.querySelector('button[role="switch"]')?.getAttribute("aria-checked")`,
+    );
+    assert(pausedChecked === "false", "Popup switch did not pause BookBridge.");
+
+    await evaluate(
+      popupSession,
+      `document.querySelector('button[role="switch"]')?.click()`,
+    );
+    await waitForView(
+      popupSession,
+      (view) => view.text.includes("按需待机"),
+      "resumed idle BookBridge popup UI",
+    );
+    process.stdout.write(
+      "Popup lifecycle: idle, pause, immediate-stop messaging, and resume states\n",
+    );
+    await popupSession.send("Emulation.clearDeviceMetricsOverride");
+  } finally {
+    popupSession.close();
+  }
+
   await evaluate(workerSession, storageExpression(transfer));
   const windowDetails = await evaluate(
     workerSession,
@@ -334,39 +415,6 @@ try {
     `Active UI overflows vertically: ${JSON.stringify(activeView.viewport)}.`,
   );
   await captureScreenshot(pageSession, "transfer-active.png");
-
-  const popupTarget = await waitForTarget(
-    (target) =>
-      target.type === "page" &&
-      target.url === `chrome-extension://${extensionId}/popup.html`,
-    "BookBridge popup page",
-  );
-  const popupSession = await CdpSession.connect(
-    popupTarget.webSocketDebuggerUrl,
-  );
-  try {
-    const popupView = await waitForView(
-      popupSession,
-      (view) => view.text.includes("BookBridge"),
-      "BookBridge popup UI",
-    );
-    await popupSession.send("Emulation.setDeviceMetricsOverride", {
-      width: 360,
-      height: 444,
-      deviceScaleFactor: 1,
-      mobile: false,
-    });
-    const sizedPopupView = await readTransferView(popupSession);
-    assert(
-      sizedPopupView.viewport.scrollWidth <= sizedPopupView.viewport.width &&
-        sizedPopupView.viewport.scrollHeight <= sizedPopupView.viewport.height,
-      `Popup UI overflows: ${JSON.stringify(sizedPopupView.viewport)} (initial: ${JSON.stringify(popupView.viewport)}).`,
-    );
-    await captureScreenshot(popupSession, "extension-popup.png");
-    await popupSession.send("Emulation.clearDeviceMetricsOverride");
-  } finally {
-    popupSession.close();
-  }
 
   const terminalStates = [
     { status: "cancelled", text: "传输已取消" },

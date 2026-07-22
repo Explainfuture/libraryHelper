@@ -19,7 +19,7 @@
 
 body {
   width: 360px;
-  min-height: 444px;
+  min-height: 520px;
   margin: 0;
   overflow-x: hidden;
   background:
@@ -29,7 +29,7 @@ body {
 }
 
 .popup-shell {
-  min-height: 444px;
+  min-height: 520px;
   padding: 17px;
 }
 
@@ -92,6 +92,22 @@ body {
   box-shadow: 0 0 0 3px rgb(43 137 99 / 12%);
 }
 
+.ready-badge-running {
+  background: #d9eee3;
+  color: #145d3f;
+}
+
+.ready-badge-paused {
+  border-color: rgb(113 96 70 / 12%);
+  background: #ebe7df;
+  color: #716657;
+}
+
+.ready-badge-paused > span {
+  background: #8b8173;
+  box-shadow: 0 0 0 3px rgb(139 129 115 / 12%);
+}
+
 .hero {
   margin: 18px 0 14px;
   padding: 18px;
@@ -124,6 +140,116 @@ h1 {
   font-size: 11px;
   line-height: 1.65;
   text-wrap: pretty;
+}
+
+.service-control {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding: 10px 11px;
+  border: 1px solid rgb(31 103 78 / 11%);
+  border-radius: 13px;
+  background: #e7f0eb;
+}
+
+.service-paused {
+  border-color: rgb(113 96 70 / 10%);
+  background: #eeeae3;
+}
+
+.service-copy {
+  min-width: 0;
+}
+
+.service-copy strong,
+.service-copy span {
+  display: block;
+}
+
+.service-copy strong {
+  color: #29473d;
+  font-size: 10px;
+}
+
+.service-copy span {
+  margin-top: 2px;
+  color: #718078;
+  font-size: 8px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.service-copy .service-error {
+  color: #a24132;
+}
+
+.service-switch {
+  display: grid;
+  min-width: 52px;
+  flex: 0 0 auto;
+  gap: 3px;
+  justify-items: center;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: #365a4d;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.service-switch:focus-visible {
+  border-radius: 9px;
+  outline: 3px solid rgb(33 112 88 / 28%);
+  outline-offset: 2px;
+}
+
+.service-switch:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.switch-track {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: #28755b;
+}
+
+.switch-track > span {
+  position: absolute;
+  top: 3px;
+  left: 18px;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 5px rgb(28 59 49 / 22%);
+}
+
+.service-paused .switch-track {
+  background: #aaa094;
+}
+
+.service-paused .switch-track > span {
+  left: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .switch-track {
+    transition: background-color 140ms ease;
+  }
+
+  .switch-track > span {
+    transition: left 140ms ease;
+  }
 }
 
 .flow {

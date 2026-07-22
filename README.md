@@ -14,14 +14,15 @@ Authorization Header 或正文，不绕过网站下载限制，也不会把文�
 
 1. Manifest V3 扩展监听 Chrome 已完成的下载，只接受 `.epub` 或
    `application/epub+zip`。
-2. 扩展通过一个持久 Native Messaging 连接把本地路径发给
-   `com.bookbridge.host`。
+2. 检测到有效 EPUB 后，扩展才通过 Native Messaging 按需启动
+   `com.bookbridge.host`，并把本地路径交给它。
 3. Go 助手校验 EPUB/ZIP 结构，在 RFC1918 私有 IPv4 地址上创建一次性临时
    session。
 4. 扩展从 `chrome.storage.session` 读取不含本地路径的公开传输信息，显示本地
    SVG 二维码、文件信息、倒计时、复制和取消操作。
 5. 手机完成文件下载后，Host 标记 session 为 completed，并把完成事件推送给
-   扩展。
+   扩展；最后一个链接完成、取消或过期后，扩展断开连接，Chrome 随即关闭本地
+   助手及其监听端口。
 
 ## 环境要求
 
@@ -30,7 +31,8 @@ Authorization Header 或正文，不绕过网站下载限制，也不会把文�
 - 与电脑处于同一 Wi-Fi 的 iPhone
 
 不需要管理员权限、Docker、数据库、云服务或常驻 Node.js 进程。正式运行时
-只有独立的 Go Native Host 进程由 Chrome 按需启动。从源码构建时才需要
+独立的 Go Native Host 进程也只由 Chrome 在传输时按需启动，空闲时没有
+BookBridge 进程或监听端口。从源码构建时才需要
 Go 1.24、Node.js 22 和 pnpm 10；发布包不需要开发工具链。
 
 ## 安装
@@ -77,7 +79,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\set-firewall-priva
    Apple Books。
 
 链接默认五分钟失效，只允许完整下载一次；取消、过期或成功下载后不能继续取得
-文件。`HEAD` 请求和页面预览不会消耗下载次数。
+文件。`HEAD` 请求和页面预览不会消耗下载次数。最后一个传输结束后，本地助手会
+自动关闭；不需要用户手动启动或退出 Server。需要暂时停止响应 EPUB 下载时，点击
+扩展图标并切换到“已暂停”，当前传输会取消且本地助手立即关闭；重新启用只会进入
+按需待机，不会提前启动助手。
 
 ## 开发
 
