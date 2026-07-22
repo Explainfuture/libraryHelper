@@ -8,6 +8,56 @@ function Get-BookBridgeRoot {
     return $script:BookBridgeRoot
 }
 
+function ConvertTo-BookBridgeExtensionId {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $ManifestKey
+    )
+
+    try {
+        $publicKey = [Convert]::FromBase64String($ManifestKey)
+    }
+    catch {
+        throw 'The BookBridge manifest key is not valid base64.'
+    }
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $digest = $sha256.ComputeHash($publicKey)
+    }
+    finally {
+        $sha256.Dispose()
+    }
+
+    $characters = New-Object char[] 32
+    for ($index = 0; $index -lt 16; $index += 1) {
+        $characters[$index * 2] = [char]([int][char]'a' + ($digest[$index] -shr 4))
+        $characters[($index * 2) + 1] = [char]([int][char]'a' + ($digest[$index] -band 15))
+    }
+    return -join $characters
+}
+
+function Get-BookBridgeExtensionIdentity {
+    $identityPath = Join-Path `
+        -Path $script:BookBridgeRoot `
+        -ChildPath 'config\extension-identity.json'
+    if (-not (Test-Path -LiteralPath $identityPath -PathType Leaf)) {
+        throw "BookBridge extension identity was not found: $identityPath"
+    }
+    $identity = [System.IO.File]::ReadAllText(
+        $identityPath,
+        [System.Text.Encoding]::UTF8
+    ) | ConvertFrom-Json
+    if ($identity.extensionId -notmatch '^[a-p]{32}$' -or
+        -not $identity.manifestKey) {
+        throw 'BookBridge extension identity is invalid.'
+    }
+    $derivedId = ConvertTo-BookBridgeExtensionId -ManifestKey $identity.manifestKey
+    if ($derivedId -ne $identity.extensionId) {
+        throw "BookBridge extension identity mismatch: expected $($identity.extensionId), derived $derivedId"
+    }
+    return $identity
+}
+
 function Assert-BookBridgeCommand {
     param(
         [Parameter(Mandatory = $true)]

@@ -33,5 +33,7 @@ pnpm --filter @bookbridge/extension build
 ```
 
 The unpacked Chrome extension is written to `.output/chrome-mv3` after a build.
-QR codes are rendered locally as SVG by `qrcode.react`; the page loads no
-external assets or services.
+Its public manifest key pins the development and release ID to
+`hmdckfnmfjkcbacphammiaelinplkkfb`, so Native Messaging installation never
+requires copying an ID from Chrome. QR codes are rendered locally as SVG by
+`qrcode.react`; the page loads no external assets or services.

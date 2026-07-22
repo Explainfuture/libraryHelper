@@ -15,6 +15,7 @@ Set-StrictMode -Version Latest
 Assert-BookBridgeToolchain
 
 $repositoryRoot = Get-BookBridgeRoot
+$identity = Get-BookBridgeExtensionIdentity
 $hostSourceDirectory = Join-Path -Path $repositoryRoot -ChildPath 'apps\native-host'
 $hostOutputDirectory = Join-Path -Path $repositoryRoot -ChildPath 'dist\native-host'
 $hostExecutable = Join-Path -Path $hostOutputDirectory -ChildPath 'bookbridge-host.exe'
@@ -77,7 +78,10 @@ function Stop-DevelopmentProcessTree {
 Build-DevelopmentHost
 $lastSourceSignature = Get-GoSourceSignature
 
-if ($ExtensionId) {
+if (-not $SmokeTest) {
+    if (-not $ExtensionId) {
+        $ExtensionId = $identity.extensionId
+    }
     Assert-BookBridgeWindows
     $manifestPath = Join-Path -Path $hostOutputDirectory -ChildPath 'com.bookbridge.host.json'
     $registryPath = 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.bookbridge.host'

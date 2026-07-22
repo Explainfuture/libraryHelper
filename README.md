@@ -27,40 +27,30 @@ Authorization Header 或正文，不绕过网站下载限制，也不会把文�
 
 - Windows 10/11
 - Chrome
-- Go 1.24 或更新版本
-- Node.js 22 或更新版本
-- pnpm 10
 - 与电脑处于同一 Wi-Fi 的 iPhone
 
 不需要管理员权限、Docker、数据库、云服务或常驻 Node.js 进程。正式运行时
-只有独立的 Go Native Host 进程由 Chrome 按需启动。
+只有独立的 Go Native Host 进程由 Chrome 按需启动。从源码构建时才需要
+Go 1.24、Node.js 22 和 pnpm 10；发布包不需要开发工具链。
 
 ## 安装
 
-在仓库根目录打开 PowerShell：
+解压发布包后双击 `Install BookBridge.cmd`。安装程序会自动安装 Native Host、复制
+固定 ID 的扩展、打开 `chrome://extensions` 和扩展文件夹，并把文件夹路径复制到
+剪贴板。然后只需：
 
-```powershell
-pnpm install --frozen-lockfile
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 -SkipInstall
-```
+1. 在 Chrome 启用“开发者模式”。
+2. 点击“加载已解压的扩展程序”，选择安装程序打开的 `extension` 文件夹。
 
-然后安装扩展和 Native Host：
+不需要复制 Extension ID、编辑 JSON 或执行 PowerShell 命令。从源码安装时也可以
+直接双击仓库根目录的 `Install BookBridge.cmd`，脚本会先完成构建。
 
-1. 打开 `chrome://extensions`，启用“开发者模式”。
-2. 点击“加载已解压的扩展程序”，选择
-   `apps\extension\.output\chrome-mv3`。
-3. 在扩展卡片上复制 32 位 Extension ID。
-4. 执行下面的命令，把占位符替换为实际 ID：
+Chrome 的安全模型不允许未上架扩展静默完成最后一次确认，也不允许扩展自身安装
+Native Messaging Host，因此当前最简流程仍保留上面的两个 Chrome 点击。未来上架
+Chrome Web Store 后，可把它替换为“添加至 Chrome”，本地助手仍由安装包自动处理。
 
-   ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-host.ps1 -ExtensionId <EXTENSION_ID>
-   ```
-
-5. 返回 `chrome://extensions`，点击 BookBridge 的“重新加载”。
-
-安装脚本会重新执行锁定依赖安装和生产构建，把 `bookbridge-host.exe` 与严格限制
-`allowed_origins` 的 manifest 写入 `%LOCALAPPDATA%\BookBridge`，并仅在当前用户的
-以下注册表位置注册：
+安装脚本把扩展、`bookbridge-host.exe` 与严格限制 `allowed_origins` 的 manifest
+写入 `%LOCALAPPDATA%\BookBridge`，并仅在当前用户的以下注册表位置注册：
 
 ```text
 HKCU\Software\Google\Chrome\NativeMessagingHosts\com.bookbridge.host
@@ -105,10 +95,11 @@ pnpm build
 
 `pnpm dev` 会启动 WXT 开发服务器，同时构建并监听 Go Native Host 源码。Native
 Host 不能像普通服务器一样手动启动；Chrome 会根据 Native Messaging 注册信息
-启动它。需要让开发扩展使用仓库中的热重建 executable 时，可直接执行：
+启动它。WXT 构建使用仓库内的固定扩展身份，开发脚本会自动注册对应的 Native
+Host，不再需要复制 Extension ID：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev.ps1 -ExtensionId <EXTENSION_ID>
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev.ps1
 ```
 
 这会把当前用户注册表临时指向 `dist\native-host\bookbridge-host.exe`。结束开发后可
@@ -120,6 +111,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev.ps1 -Extension
 - Native Host：`dist\native-host\bookbridge-host.exe`
 
 这些目录是构建产物，不会提交到 Git。
+
+要生成不依赖 Node.js、pnpm 或 Go 的 Windows 发布包，执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
+```
+
+产物为 `dist\release\BookBridge-windows-x64.zip`。
+GitHub Actions 中的 `Windows release package` 也可以手动生成可下载构建产物；推送
+`v*` 标签时会自动创建 GitHub Release 并附加该 ZIP。
 
 构建脚本会从仓库内的 BookBridge 图形生成 Chrome 所需的 16/32/48/128 px PNG
 图标。要快速验证 WXT 和 Go 的并行开发流程会启动且能被干净关闭，可运行：
@@ -139,6 +140,8 @@ go test ./...
 pnpm build
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-extension.ps1 -SkipBuild
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-paths.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-release.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-install.ps1
 ```
 
 Vitest 覆盖 EPUB 识别、下载去重、Native Messaging 超时/重连/协议校验、session
@@ -153,7 +156,9 @@ Service Worker 与 popup 实际启动。烟测还会创建传输 popup，验证�
 写入隔离浏览器的 `chrome.storage.session`，不会修改用户的 Chrome 配置。脚本优先
 使用本机 Playwright Chromium，也可用 `-ChromePath` 指定兼容的 Chromium executable。
 `smoke-paths.ps1` 会从仓库内的临时中文及空格路径执行完整构建，并校验 Native
-Messaging manifest 能无损保存该绝对路径。
+Messaging manifest 能无损保存该绝对路径。`smoke-install.ps1` 会从生成的 ZIP
+解压发布包，在临时中文及空格路径中执行无开发工具链的安装，并验证固定扩展 ID、
+严格 `allowed_origins`、文件复制和隔离测试注册表项，随后清理测试数据。
 
 正式发布前仍须按“安装”和“使用”章节在真实 Google Chrome 中手动加载扩展，确认
 Windows 防火墙只允许专用网络，并用同一 Wi-Fi 下的真实 iPhone 完成一次扫码、下载与
@@ -172,9 +177,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\manual-acceptance-
 
 ### 提示“BookBridge 本地助手未运行”
 
-- 确认已用当前扩展卡片显示的 ID 运行 `install-host.ps1`；重新加载目录可能产生
-  不同 ID。
-- 重新运行安装脚本，然后在 `chrome://extensions` 重新加载扩展。
+- 重新双击 `Install BookBridge.cmd`，然后在 `chrome://extensions` 重新加载扩展。
+- 确认加载的是 `%LOCALAPPDATA%\BookBridge\extension`；固定扩展 ID 应为
+  `hmdckfnmfjkcbacphammiaelinplkkfb`。
 - 在扩展卡片的“Service worker”检查错误日志。
 - 确认 manifest 中的 executable 路径仍然存在，且安全软件没有隔离它。
 
@@ -202,14 +207,11 @@ Host 会在有限范围内尝试后续端口。二维码始终包含实际选中
 
 ## 卸载
 
-先关闭 BookBridge 二维码窗口并在 Chrome 中移除扩展，然后执行：
+先关闭 BookBridge 二维码窗口并在 Chrome 中移除扩展，然后双击
+`Uninstall BookBridge.cmd`。
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall-host.ps1
-```
-
-卸载脚本只删除 BookBridge 的当前用户注册表项、`bookbridge-host.exe` 和生成的
-manifest。如果安装目录包含其他文件，它会保留目录和未知文件并给出警告。
+卸载脚本只删除 BookBridge 的当前用户注册表项、扩展目录、`bookbridge-host.exe`
+和生成的 manifest。如果安装目录包含其他文件，它会保留目录和未知文件并给出警告。
 
 如果 Windows 曾为 Host 创建防火墙规则，再在管理员 PowerShell 中执行下面的命令以
 删除程序路径精确匹配 BookBridge 的规则；没有匹配规则时该命令也可安全重复运行：

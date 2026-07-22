@@ -92,6 +92,10 @@ $manifestJson = [System.IO.File]::ReadAllText(
     [System.Text.Encoding]::UTF8
 )
 $manifest = $manifestJson | ConvertFrom-Json
+$identity = Get-BookBridgeExtensionIdentity
+if ($manifest.key -ne $identity.manifestKey) {
+    throw 'The built extension is missing its stable BookBridge identity.'
+}
 $expectedPermissions = @(
     'downloads',
     'nativeMessaging',
@@ -129,6 +133,15 @@ Copy-Item `
     -Destination $extensionPath `
     -Recurse `
     -Force
+$smokeManifestPath = Join-Path -Path $extensionPath -ChildPath 'manifest.json'
+$smokeManifest = [System.IO.File]::ReadAllText(
+    $smokeManifestPath,
+    [System.Text.Encoding]::UTF8
+) | ConvertFrom-Json
+$smokeManifest.PSObject.Properties.Remove('key')
+Write-BookBridgeUtf8File `
+    -Path $smokeManifestPath `
+    -Content ($smokeManifest | ConvertTo-Json -Depth 12)
 $profilePath = Join-Path -Path $smokeRoot -ChildPath 'profile'
 New-Item -ItemType Directory -Path $profilePath -Force | Out-Null
 $standardOutputPath = Join-Path -Path $smokeRoot -ChildPath 'chrome.stdout.log'
@@ -250,8 +263,8 @@ try {
     $version = Invoke-RestMethod -Uri "http://127.0.0.1:$port/json/version"
     Write-Output "Executable: $ChromePath"
     Write-Output "Chrome: $($version.Browser)"
-    Write-Output "Manifest: MV3 with exact minimal permissions and PNG icons"
-    Write-Output "Extension ID: $extensionId"
+    Write-Output "Source manifest: stable production identity with exact minimal permissions and PNG icons"
+    Write-Output "Isolated smoke Extension ID: $extensionId"
     Write-Output "Service worker: $workerURL"
     Write-Output "Popup: $($popupTargets[0].title) ($($popupTargets[0].url))"
     $succeeded = $true

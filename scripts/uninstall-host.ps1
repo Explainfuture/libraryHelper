@@ -23,6 +23,10 @@ $generatedFiles = @(
     (Join-Path -Path $installDirectory -ChildPath 'bookbridge-host.exe'),
     (Join-Path -Path $installDirectory -ChildPath 'com.bookbridge.host.json')
 )
+$generatedDirectories = @(
+    (Join-Path -Path $installDirectory -ChildPath 'extension'),
+    (Join-Path -Path $installDirectory -ChildPath 'extension.new')
+)
 
 if ((Test-Path -LiteralPath $registryPath) -and
     $PSCmdlet.ShouldProcess($registryPath, 'Remove Native Messaging registration')) {
@@ -33,6 +37,23 @@ foreach ($file in $generatedFiles) {
     if ((Test-Path -LiteralPath $file -PathType Leaf) -and
         $PSCmdlet.ShouldProcess($file, 'Remove BookBridge generated file')) {
         Remove-Item -LiteralPath $file -Force
+    }
+}
+
+foreach ($directory in $generatedDirectories) {
+    $absoluteDirectory = [System.IO.Path]::GetFullPath($directory)
+    $installPrefix = $installDirectory.TrimEnd(
+        [System.IO.Path]::DirectorySeparatorChar
+    ) + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $absoluteDirectory.StartsWith(
+            $installPrefix,
+            [StringComparison]::OrdinalIgnoreCase
+        )) {
+        throw "Refusing to remove an unexpected directory: $absoluteDirectory"
+    }
+    if ((Test-Path -LiteralPath $absoluteDirectory -PathType Container) -and
+        $PSCmdlet.ShouldProcess($absoluteDirectory, 'Remove BookBridge extension files')) {
+        Remove-Item -LiteralPath $absoluteDirectory -Recurse -Force
     }
 }
 
