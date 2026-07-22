@@ -6,6 +6,7 @@ node_modules/
 dist/
 build/
 coverage/
+output/playwright/
 
 # Go build and test output
 *.exe

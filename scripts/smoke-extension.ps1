@@ -4,7 +4,10 @@ param(
     [switch] $SkipBuild,
 
     [Parameter()]
-    [string] $ChromePath
+    [string] $ChromePath,
+
+    [Parameter()]
+    [string] $ScreenshotDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -73,14 +76,14 @@ if (-not $SkipBuild) {
     }
 }
 
-$extensionPath = [System.IO.Path]::GetFullPath(
+$builtExtensionPath = [System.IO.Path]::GetFullPath(
     (Join-Path -Path $repositoryRoot -ChildPath 'apps\extension\.output\chrome-mv3')
 )
-if (-not (Test-Path -LiteralPath $extensionPath -PathType Container)) {
-    throw "Built extension was not found: $extensionPath"
+if (-not (Test-Path -LiteralPath $builtExtensionPath -PathType Container)) {
+    throw "Built extension was not found: $builtExtensionPath"
 }
 
-$manifestPath = Join-Path -Path $extensionPath -ChildPath 'manifest.json'
+$manifestPath = Join-Path -Path $builtExtensionPath -ChildPath 'manifest.json'
 if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     throw "Built extension manifest was not found: $manifestPath"
 }
@@ -112,7 +115,7 @@ if ($manifest.manifest_version -ne 3 -or
 foreach ($iconSize in @(16, 32, 48, 128)) {
     $iconName = "icons/icon-$iconSize.png"
     if ($manifest.icons."$iconSize" -ne $iconName -or
-        -not (Test-Path -LiteralPath (Join-Path $extensionPath $iconName) -PathType Leaf)) {
+        -not (Test-Path -LiteralPath (Join-Path $builtExtensionPath $iconName) -PathType Leaf)) {
         throw "The built extension is missing its $iconSize px PNG icon."
     }
 }
@@ -120,6 +123,12 @@ foreach ($iconSize in @(16, 32, 48, 128)) {
 if (Test-Path -LiteralPath $smokeRoot) {
     Remove-Item -LiteralPath $smokeRoot -Recurse -Force
 }
+$extensionPath = Join-Path -Path $smokeRoot -ChildPath 'extension'
+Copy-Item `
+    -LiteralPath $builtExtensionPath `
+    -Destination $extensionPath `
+    -Recurse `
+    -Force
 $profilePath = Join-Path -Path $smokeRoot -ChildPath 'profile'
 New-Item -ItemType Directory -Path $profilePath -Force | Out-Null
 $standardOutputPath = Join-Path -Path $smokeRoot -ChildPath 'chrome.stdout.log'
@@ -214,11 +223,29 @@ try {
     $uiSmokeScript = Join-Path `
         -Path $repositoryRoot `
         -ChildPath 'scripts\smoke-extension-ui.mjs'
-    Invoke-BookBridgeCommand -Command 'node' -Arguments @(
+    $uiSmokeArguments = @(
         $uiSmokeScript,
         [string]$port,
         $extensionId
     )
+    if ($ScreenshotDirectory) {
+        if ([System.IO.Path]::IsPathRooted($ScreenshotDirectory)) {
+            $resolvedScreenshotDirectory = [System.IO.Path]::GetFullPath(
+                $ScreenshotDirectory
+            )
+        }
+        else {
+            $resolvedScreenshotDirectory = [System.IO.Path]::GetFullPath(
+                (Join-Path -Path $repositoryRoot -ChildPath $ScreenshotDirectory)
+            )
+        }
+        New-Item `
+            -ItemType Directory `
+            -Path $resolvedScreenshotDirectory `
+            -Force | Out-Null
+        $uiSmokeArguments += $resolvedScreenshotDirectory
+    }
+    Invoke-BookBridgeCommand -Command 'node' -Arguments $uiSmokeArguments
 
     $version = Invoke-RestMethod -Uri "http://127.0.0.1:$port/json/version"
     Write-Output "Executable: $ChromePath"

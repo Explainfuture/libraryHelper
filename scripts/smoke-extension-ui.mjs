@@ -1,7 +1,13 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import process from "node:process";
 
-const [portArgument, extensionId] = process.argv.slice(2);
+const [portArgument, extensionId, screenshotDirectoryArgument] =
+  process.argv.slice(2);
 const port = Number.parseInt(portArgument ?? "", 10);
+const screenshotDirectory = screenshotDirectoryArgument
+  ? resolve(screenshotDirectoryArgument)
+  : undefined;
 
 if (!Number.isSafeInteger(port) || port <= 0 || port > 65_535) {
   throw new TypeError("A valid Chrome DevTools port is required.");
@@ -161,6 +167,23 @@ async function evaluate(session, expression) {
   return response.result?.value;
 }
 
+async function captureScreenshot(session, filename) {
+  if (screenshotDirectory === undefined) {
+    return;
+  }
+  mkdirSync(screenshotDirectory, { recursive: true });
+  await session.send("Page.enable");
+  const screenshot = await session.send("Page.captureScreenshot", {
+    format: "png",
+    fromSurface: true,
+    captureBeyondViewport: false,
+  });
+  writeFileSync(
+    join(screenshotDirectory, filename),
+    Buffer.from(screenshot.data, "base64"),
+  );
+}
+
 function storageExpression(nextTransfer) {
   const values = { "bookbridge.transfers": [nextTransfer] };
   return `chrome.storage.session.set(${JSON.stringify(values)})`;
@@ -180,6 +203,18 @@ async function readTransferView(pageSession) {
         type: button.type,
         disabled: button.disabled,
       })),
+      viewport: {
+        width: innerWidth,
+        height: innerHeight,
+        scrollWidth: Math.max(
+          document.documentElement.scrollWidth,
+          document.body?.scrollWidth ?? 0,
+        ),
+        scrollHeight: Math.max(
+          document.documentElement.scrollHeight,
+          document.body?.scrollHeight ?? 0,
+        ),
+      },
     }))()`,
   );
 }
@@ -290,6 +325,48 @@ try {
       ]),
     "Active UI buttons are missing or not keyboard-operable buttons.",
   );
+  assert(
+    activeView.viewport.scrollWidth <= activeView.viewport.width,
+    `Active UI overflows horizontally: ${JSON.stringify(activeView.viewport)}.`,
+  );
+  assert(
+    activeView.viewport.scrollHeight <= activeView.viewport.height,
+    `Active UI overflows vertically: ${JSON.stringify(activeView.viewport)}.`,
+  );
+  await captureScreenshot(pageSession, "transfer-active.png");
+
+  const popupTarget = await waitForTarget(
+    (target) =>
+      target.type === "page" &&
+      target.url === `chrome-extension://${extensionId}/popup.html`,
+    "BookBridge popup page",
+  );
+  const popupSession = await CdpSession.connect(
+    popupTarget.webSocketDebuggerUrl,
+  );
+  try {
+    const popupView = await waitForView(
+      popupSession,
+      (view) => view.text.includes("BookBridge"),
+      "BookBridge popup UI",
+    );
+    await popupSession.send("Emulation.setDeviceMetricsOverride", {
+      width: 360,
+      height: 444,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    const sizedPopupView = await readTransferView(popupSession);
+    assert(
+      sizedPopupView.viewport.scrollWidth <= sizedPopupView.viewport.width &&
+        sizedPopupView.viewport.scrollHeight <= sizedPopupView.viewport.height,
+      `Popup UI overflows: ${JSON.stringify(sizedPopupView.viewport)} (initial: ${JSON.stringify(popupView.viewport)}).`,
+    );
+    await captureScreenshot(popupSession, "extension-popup.png");
+    await popupSession.send("Emulation.clearDeviceMetricsOverride");
+  } finally {
+    popupSession.close();
+  }
 
   const terminalStates = [
     { status: "cancelled", text: "传输已取消" },
@@ -319,6 +396,14 @@ try {
       terminalView.text.includes("手机和电脑必须连接同一局域网"),
       `${state.text} UI lost the LAN reminder.`,
     );
+    assert(
+      terminalView.viewport.scrollWidth <= terminalView.viewport.width &&
+        terminalView.viewport.scrollHeight <= terminalView.viewport.height,
+      `${state.text} UI overflows: ${JSON.stringify(terminalView.viewport)}.`,
+    );
+    if (state.status === "completed") {
+      await captureScreenshot(pageSession, "transfer-completed.png");
+    }
   }
 
   process.stdout.write(
@@ -330,6 +415,9 @@ try {
   process.stdout.write(
     "Terminal UI: cancelled, completed, and expired states\n",
   );
+  if (screenshotDirectory !== undefined) {
+    process.stdout.write(`Screenshots: ${screenshotDirectory}\n`);
+  }
 } finally {
   pageSession?.close();
   if (Number.isSafeInteger(transferWindowId)) {

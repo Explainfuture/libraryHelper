@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 import { formatFileSize, getCountdown } from "../../src/format";
@@ -52,6 +52,10 @@ function TransferCard({
   const viewState = getTransferViewState(transfer, now);
   const countdown = getCountdown(transfer.expiresAt, now);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [viewState]);
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(transfer.url);
@@ -82,45 +86,65 @@ function TransferCard({
   return (
     <main className="shell">
       <header className="header">
-        <span className="logo" aria-hidden="true">
-          B
-        </span>
-        <div>
-          <p className="eyebrow">本地安全传输</p>
-          <h1>BookBridge</h1>
+        <div className="brand">
+          <img
+            className="brand-mark"
+            src="/icons/icon-48.png"
+            alt=""
+            width="44"
+            height="44"
+          />
+          <div>
+            <p className="eyebrow">PRIVATE EPUB DELIVERY</p>
+            <h1 translate="no">BookBridge</h1>
+          </div>
         </div>
         <StatusBadge state={viewState} />
       </header>
 
       <section className="file-card" aria-label="EPUB 文件信息">
         <div className="file-icon" aria-hidden="true">
-          EPUB
+          <span>EPUB</span>
         </div>
         <div className="file-copy">
+          <p className="file-label">准备发送</p>
           <h2 title={transfer.filename}>{transfer.filename}</h2>
-          <p>{formatFileSize(transfer.size)}</p>
+          <p className="file-meta">{formatFileSize(transfer.size)} · EPUB</p>
         </div>
       </section>
 
       {viewState === "active" ? (
-        <>
-          <section className="qr-card" aria-label="传输二维码">
-            <QRCodeSVG
-              value={transfer.url}
-              size={194}
-              level="M"
-              marginSize={2}
-              title={`下载 ${transfer.filename}`}
-              bgColor="#ffffff"
-              fgColor="#153f35"
-            />
+        <section className="transfer-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="panel-label">扫码接收</p>
+              <h2>用 iPhone 相机打开</h2>
+            </div>
+            <p className="countdown" aria-live="polite">
+              <span>剩余有效时间</span>
+              <strong>{countdown.label}</strong>
+            </p>
+          </div>
+
+          <section className="qr-stage" aria-label="传输二维码">
+            <div className="qr-card">
+              <QRCodeSVG
+                value={transfer.url}
+                size={128}
+                level="M"
+                marginSize={2}
+                title={`下载 ${transfer.filename}`}
+                bgColor="#ffffff"
+                fgColor="#173a31"
+              />
+            </div>
           </section>
-          <p className="countdown" aria-live="polite">
-            剩余有效时间 <strong>{countdown.label}</strong>
-          </p>
-          <p className="link" title={transfer.url}>
-            {transfer.url}
-          </p>
+
+          <div className="link-row">
+            <span>局域网链接</span>
+            <code title={transfer.url}>{transfer.url}</code>
+          </div>
+
           <div className="actions">
             <button
               className="button button-primary"
@@ -146,15 +170,20 @@ function TransferCard({
             {copyStatus === "error" && "复制失败，请手动选择上方链接。"}
             {cancelState === "error" && "取消失败，请确认本地助手正在运行。"}
           </p>
-        </>
+        </section>
       ) : (
         <TerminalState state={viewState} />
       )}
 
-      <p className="lan-tip">
-        <span aria-hidden="true">⌁</span>
-        手机和电脑必须连接同一局域网
-      </p>
+      <footer className="lan-tip">
+        <span className="lan-icon" aria-hidden="true">
+          ✓
+        </span>
+        <span>
+          <strong>仅在本地网络传输</strong>
+          手机和电脑必须连接同一局域网
+        </span>
+      </footer>
     </main>
   );
 }
@@ -170,7 +199,12 @@ function StatusBadge({
     completed: "已完成",
     expired: "已失效",
   } as const;
-  return <span className={`status status-${state}`}>{labels[state]}</span>;
+  return (
+    <span className={`status status-${state}`}>
+      <span className="status-dot" aria-hidden="true" />
+      {labels[state]}
+    </span>
+  );
 }
 
 function TerminalState({
@@ -212,10 +246,14 @@ function Unavailable({
 }) {
   return (
     <main className="shell shell-centered" aria-busy={busy}>
-      <span className="logo logo-large" aria-hidden="true">
-        B
-      </span>
-      <h1>BookBridge</h1>
+      <img
+        className="brand-mark brand-mark-large"
+        src="/icons/icon-128.png"
+        alt=""
+        width="68"
+        height="68"
+      />
+      <h1 translate="no">BookBridge</h1>
       <p className="unavailable" role="status">
         {message}
       </p>
