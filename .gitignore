@@ -8,6 +8,7 @@ build/
 coverage/
 output/playwright/
 output/playwright-ios/
+.playwright-cli/
 
 # Go build and test output
 *.exe

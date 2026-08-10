@@ -6,13 +6,13 @@
   "license": "MIT",
   "packageManager": "pnpm@10.28.1",
   "scripts": {
-    "build": "pnpm --filter @bookbridge/extension build && go build ./...",
-    "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1",
+    "build": "pnpm --filter @bookbridge/web build && pnpm --filter @bookbridge/extension build",
+    "dev": "pnpm --parallel --filter @bookbridge/web --filter @bookbridge/extension dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "pnpm --filter @bookbridge/extension lint && go vet ./... && node --check scripts/smoke-extension-ui.mjs && node --check scripts/manual-acceptance-server.mjs && prettier --check .",
-    "test": "pnpm --filter @bookbridge/extension test && go test ./...",
-    "typecheck": "pnpm --filter @bookbridge/extension typecheck && go test -run=^$ ./..."
+    "lint": "pnpm --filter @bookbridge/protocol lint && pnpm --filter @bookbridge/web lint && pnpm --filter @bookbridge/extension lint && node --check scripts/smoke-extension-ui.mjs && node --check scripts/manual-acceptance-server.mjs && prettier --check .",
+    "test": "pnpm --filter @bookbridge/protocol test && pnpm --filter @bookbridge/web test && pnpm --filter @bookbridge/extension test",
+    "typecheck": "pnpm --filter @bookbridge/protocol typecheck && pnpm --filter @bookbridge/web typecheck && pnpm --filter @bookbridge/extension typecheck"
   },
   "devDependencies": {
     "prettier": "^3.6.2"

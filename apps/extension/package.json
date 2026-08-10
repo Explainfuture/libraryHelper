@@ -13,6 +13,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@bookbridge/protocol": "workspace:*",
+    "@zip.js/zip.js": "^2.8.11",
+    "peerjs": "^1.5.5",
     "qrcode.react": "4.2.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

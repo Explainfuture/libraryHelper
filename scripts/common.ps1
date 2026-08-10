@@ -70,7 +70,6 @@ function Assert-BookBridgeCommand {
 }
 
 function Assert-BookBridgeToolchain {
-    Assert-BookBridgeCommand -Name 'go'
     Assert-BookBridgeCommand -Name 'node'
     Assert-BookBridgeCommand -Name 'pnpm'
 }
@@ -107,28 +106,4 @@ function Write-BookBridgeUtf8File {
 
     $encoding = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($Path, $Content, $encoding)
-}
-
-function New-BookBridgeNativeManifestJson {
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidatePattern('^[a-p]{32}$')]
-        [string] $ExtensionId,
-
-        [Parameter(Mandatory = $true)]
-        [string] $ExecutablePath,
-
-        [Parameter()]
-        [string] $Description = 'BookBridge EPUB transfer host'
-    )
-
-    $absoluteExecutablePath = [System.IO.Path]::GetFullPath($ExecutablePath)
-    $manifest = [ordered]@{
-        name = 'com.bookbridge.host'
-        description = $Description
-        path = $absoluteExecutablePath
-        type = 'stdio'
-        allowed_origins = @("chrome-extension://$ExtensionId/")
-    }
-    return $manifest | ConvertTo-Json -Depth 4
 }

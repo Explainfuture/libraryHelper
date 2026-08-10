@@ -9,12 +9,14 @@ export interface DownloadDelta {
 export interface DownloadItem {
   id: number;
   filename: string;
+  fileSize?: number;
   mime?: string;
 }
 
 export interface EligibleDownload {
   downloadId: number;
-  filePath: string;
+  filename: string;
+  fileSize?: number;
 }
 
 export interface DownloadCoordinatorOptions {
@@ -47,7 +49,8 @@ export class DownloadCoordinator {
       }
       await this.#onEligible({
         downloadId: item.id,
-        filePath: item.filename,
+        filename: item.filename,
+        ...(item.fileSize === undefined ? {} : { fileSize: item.fileSize }),
       });
       return true;
     } catch (error: unknown) {

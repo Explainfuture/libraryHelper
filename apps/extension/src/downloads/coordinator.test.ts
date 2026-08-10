@@ -9,6 +9,7 @@ describe("DownloadCoordinator", () => {
         {
           id: 7,
           filename: String.raw`C:\Downloads\book.EPUB`,
+          fileSize: 12_345,
           mime: "application/epub+zip",
         },
       ]),
@@ -28,7 +29,8 @@ describe("DownloadCoordinator", () => {
     expect(search).toHaveBeenCalledTimes(1);
     expect(onEligible).toHaveBeenCalledWith({
       downloadId: 7,
-      filePath: String.raw`C:\Downloads\book.EPUB`,
+      filename: String.raw`C:\Downloads\book.EPUB`,
+      fileSize: 12_345,
     });
   });
 
