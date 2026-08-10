@@ -1,41 +1,41 @@
 # BookBridge extension
 
-This directory contains the Manifest V3 Chrome extension built with WXT, React,
-and TypeScript.
+This directory contains the small Manifest V3 Chrome extension built with WXT,
+React, and TypeScript.
 
-The current increment provides:
+The extension:
 
-- EPUB detection from completed Chrome downloads using the filename or
-  `application/epub+zip` MIME type;
-- bounded download-ID deduplication and a bounded queue in
-  `chrome.storage.session`;
-- strict runtime parsing for the native messaging protocol;
-- an on-demand Native Messaging connection with request correlation, timeouts,
-  exponential-backoff reconnects, and structured error handling;
-- automatic Native Host shutdown after the last transfer completes, is
-  cancelled, or expires, plus a popup pause/resume control;
-- session-scoped public transfer records that never contain a local path; and
-- an automatically opened QR transfer window with a live countdown, copy and
-  cancel controls, and completed, cancelled, and expired states.
+- detects completed EPUB downloads by filename or MIME type;
+- strips the local directory and passes only a suggested filename to its own
+  extension page;
+- stores user-selected read-only directory handles in extension IndexedDB and
+  matches only a direct child with the completed download's filename and size;
+- supports multiple authorized folders on any drive, with manual selection as
+  a fallback;
+- validates the selected EPUB, creates the WebRTC sender, and renders the QR
+  code and progress inside `transfer.html`; and
+- provides a manual “Choose EPUB” action from the popup.
 
-The extension requests only `downloads`, `nativeMessaging`, `notifications`,
-`storage`, and `windows`. It has no host permissions and does not inspect page
-content, cookies, credentials, or authorization headers.
+The QR code points to the hosted phone receiver. The hosted page never acts as
+the desktop sender.
 
-## Development
+It requests only `downloads`, `notifications`, and `windows`. It has no host
+permissions, content scripts, native messaging, unrestricted filesystem access,
+or page-data access.
+
+Directory access uses the browser's File System Access permission prompt rather
+than a manifest permission. The user grants and can remove each folder
+explicitly; BookBridge does not recursively enumerate authorized folders.
 
 From the repository root:
 
 ```powershell
-pnpm install
 pnpm --filter @bookbridge/extension test
 pnpm --filter @bookbridge/extension lint
 pnpm --filter @bookbridge/extension typecheck
 pnpm --filter @bookbridge/extension build
 ```
 
-The unpacked Chrome extension is written to `.output/chrome-mv3` after a build.
-Its public manifest key pins the development and release ID to
-`hmdckfnmfjkcbacphammiaelinplkkfb`, so Native Messaging installation never
-requires copying an ID from Chrome. QR codes are rendered locally as SVG by
-`qrcode.react`; the page loads no external assets or services.
+The unpacked extension is written to `.output/chrome-mv3`. The manifest public
+key keeps GitHub unpacked builds on a stable development ID. Runtime code does
+not depend on that ID.

@@ -24,7 +24,7 @@ export default defineConfig({
   manifest: {
     key: identity.manifestKey,
     name: "BookBridge",
-    description: "将本地下载的 EPUB 安全传输到同一局域网中的手机。",
+    description: "常用保存目录授权一次，下载 EPUB 后自动显示手机接收二维码。",
     icons: {
       16: "icons/icon-16.png",
       32: "icons/icon-32.png",
@@ -37,12 +37,10 @@ export default defineConfig({
         32: "icons/icon-32.png",
       },
     },
-    permissions: [
-      "downloads",
-      "nativeMessaging",
-      "notifications",
-      "storage",
-      "windows",
-    ],
+    permissions: ["downloads", "notifications", "windows"],
+    content_security_policy: {
+      extension_pages:
+        "script-src 'self'; object-src 'self'; connect-src 'self' https://0.peerjs.com wss://0.peerjs.com",
+    },
   },
 });

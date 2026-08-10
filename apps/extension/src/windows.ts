@@ -1,25 +1,32 @@
 export interface TransferWindowOptions {
   focused: true;
-  height: 600;
+  height: 720;
   type: "popup";
   url: string;
-  width: 420;
+  width: 440;
 }
 
 export function createTransferWindowOptions(
-  transferPageURL: string,
-  transferId: string,
+  extensionBaseURL: URL,
+  suggestedFilename?: string,
+  expectedBytes?: number,
 ): TransferWindowOptions {
-  if (transferId === "") {
-    throw new TypeError("transferId is required");
+  const url = new URL("transfer.html", extensionBaseURL);
+  if (suggestedFilename !== undefined && suggestedFilename !== "") {
+    url.searchParams.set("filename", suggestedFilename);
   }
-  const url = new URL(transferPageURL);
-  url.searchParams.set("transferId", transferId);
+  if (
+    expectedBytes !== undefined &&
+    Number.isSafeInteger(expectedBytes) &&
+    expectedBytes >= 0
+  ) {
+    url.searchParams.set("size", expectedBytes.toString());
+  }
   return {
     focused: true,
-    height: 600,
+    height: 720,
     type: "popup",
     url: url.toString(),
-    width: 420,
+    width: 440,
   };
 }

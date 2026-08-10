@@ -1,30 +1,26 @@
-# Implementation plan
+# Pure-browser implementation
 
-BookBridge will be delivered in small, independently verified batches:
+BookBridge now separates lightweight download detection from browser-to-browser
+file transfer:
 
-1. **Complete:** Establish the pnpm monorepo and implement the bounded Chrome Native
-   Messaging frame codec with Go unit tests.
-2. **Complete:** Add EPUB validation and the concurrency-safe transfer session store.
-3. **Complete:** Add LAN address selection and the hardened local HTTP download server.
-4. **Complete:** Connect the native host request loop to transfer creation, cancellation,
-   expiry, and completion events.
-5. **Complete:** Build the WXT/React extension.
-   - **Complete:** Manifest V3 foundation, minimal permissions, EPUB download
-     listener, bounded deduplication, session storage, strict protocol parsing,
-     popup foundation, and TypeScript tests.
-   - **Complete:** Persistent native channel, request timeouts, exponential
-     reconnects, transfer-state persistence, completion events, and host-error
-     notifications.
-   - **Complete:** Automatically opened QR transfer window, countdown, copying,
-     cancellation, session-backed status updates, and terminal-state UI.
-6. **Complete:** Add Windows build, current-user install, safe uninstall, and
-   parallel WXT/Go development scripts; document Chrome/iPhone setup and run
-   the automated lint, typecheck, test, and build gates.
-7. **Complete:** Generate Chrome-compatible raster icons, isolate HTTP handler
-   panics, centralize Native Messaging manifest generation, verify builds from
-   Unicode/space paths, and load the production extension in isolated Chromium
-   to prove its exact permissions, MV3 worker, popup, QR transfer window, and
-   active/cancelled/completed/expired UI states.
-8. **Manual release gate:** Verify the installed host with real Google Chrome,
-   approve only the private-network Windows Firewall scope, and complete the
-   QR/download/Apple Books flow on a real iPhone on the same Wi-Fi.
+1. The Manifest V3 extension detects completed EPUB downloads and opens its own
+   `transfer.html` page with only a filename hint.
+2. The user grants read-only access to one or more actual save directories on
+   any drive. The extension stores those handles in IndexedDB and checks only a
+   direct child whose name and size match Chrome's completed download event.
+3. If no authorized directory matches, the user explicitly selects the file as
+   a safe fallback.
+4. The extension validates the EPUB archive and creates a random PeerJS/WebRTC
+   pairing session.
+5. The QR code keeps the Peer ID and authentication token in the URL fragment.
+6. The receiver authenticates inside the encrypted data channel, receives
+   bounded ordered chunks, reconstructs the EPUB, and offers the system share
+   sheet or a download.
+7. GitHub Pages hosts only the static phone receiver. PeerJS Cloud carries
+   signaling, and STUN discovers a direct route; no TURN/file relay is
+   configured.
+8. GitHub Actions deploys the web app and produces one extension ZIP suitable
+   for Chrome Web Store upload or unpacked GitHub installation.
+
+The retired Go Native Host, registry installer, firewall workflow, local HTTP
+server, and native messaging protocol have been removed.

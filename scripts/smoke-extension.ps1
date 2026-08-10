@@ -7,7 +7,10 @@ param(
     [string] $ChromePath,
 
     [Parameter()]
-    [string] $ScreenshotDirectory
+    [string] $ScreenshotDirectory,
+
+    [Parameter()]
+    [string] $EpubFixture
 )
 
 $ErrorActionPreference = 'Stop'
@@ -98,9 +101,7 @@ if ($manifest.key -ne $identity.manifestKey) {
 }
 $expectedPermissions = @(
     'downloads',
-    'nativeMessaging',
     'notifications',
-    'storage',
     'windows'
 )
 $actualPermissions = @($manifest.permissions | Sort-Object)
@@ -153,7 +154,7 @@ $arguments = @(
     '--no-first-run',
     '--no-default-browser-check',
     '--window-position=-32000,-32000',
-    '--window-size=420,600',
+    '--window-size=440,720',
     '--remote-debugging-port=0',
     ('--user-data-dir="{0}"' -f $profilePath),
     ('--disable-extensions-except="{0}"' -f $extensionPath),
@@ -258,12 +259,29 @@ try {
             -Force | Out-Null
         $uiSmokeArguments += $resolvedScreenshotDirectory
     }
+    elseif ($EpubFixture) {
+        $uiSmokeArguments += ''
+    }
+    if ($EpubFixture) {
+        if ([System.IO.Path]::IsPathRooted($EpubFixture)) {
+            $resolvedEpubFixture = [System.IO.Path]::GetFullPath($EpubFixture)
+        }
+        else {
+            $resolvedEpubFixture = [System.IO.Path]::GetFullPath(
+                (Join-Path -Path $repositoryRoot -ChildPath $EpubFixture)
+            )
+        }
+        if (-not (Test-Path -LiteralPath $resolvedEpubFixture -PathType Leaf)) {
+            throw "EPUB smoke fixture was not found: $resolvedEpubFixture"
+        }
+        $uiSmokeArguments += $resolvedEpubFixture
+    }
     Invoke-BookBridgeCommand -Command 'node' -Arguments $uiSmokeArguments
 
     $version = Invoke-RestMethod -Uri "http://127.0.0.1:$port/json/version"
     Write-Output "Executable: $ChromePath"
     Write-Output "Chrome: $($version.Browser)"
-    Write-Output "Source manifest: stable production identity with exact minimal permissions and PNG icons"
+    Write-Output "Source manifest: stable identity, pure-browser permissions, and PNG icons"
     Write-Output "Isolated smoke Extension ID: $extensionId"
     Write-Output "Service worker: $workerURL"
     Write-Output "Popup: $($popupTargets[0].title) ($($popupTargets[0].url))"

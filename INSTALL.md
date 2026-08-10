@@ -1,29 +1,27 @@
 # 安装 BookBridge
 
-BookBridge 由 Chrome 扩展和一个很小的 Windows 本地助手组成。扩展负责监听 EPUB
-下载和显示二维码；本地助手负责读取 Chrome 给出的绝对文件路径，并在局域网内提供五分钟的一次性下载。
+BookBridge 现在是纯浏览器扩展，不再安装本地助手，也不写注册表或创建防火墙规则。
 
-## 普通用户
+## Chrome Web Store
 
-1. 解压完整的 BookBridge 发布包，不要只取其中一个文件。
-2. 双击 `Install BookBridge.cmd`。不需要管理员权限。
-3. 安装程序会打开 `chrome://extensions` 和已经安装好的扩展文件夹，并把文件夹路径复制到剪贴板。
-4. 在 Chrome 中打开“开发者模式”，点击“加载已解压的扩展程序”，选择刚刚打开的 `extension` 文件夹。
+上架后直接点击“添加至 Chrome”。
 
-无需复制扩展 ID，无需修改 JSON 或注册表，也无需安装 Node.js、pnpm 或 Go。首次出现 Windows
-防火墙提示时，只允许“专用网络”。
+## 从 GitHub 安装
 
-本地助手不需要手动启动：扩展检测到有效 EPUB 后会按需启动它，最后一个链接完成、
-取消或过期后会自动关闭。需要暂时停用时，点击 Chrome 工具栏中的 BookBridge 图标，
-再点击“暂停”；这会取消当前传输并立即关闭本地助手。再次“启用”只恢复监听，不会
-常驻进程或端口。
+Chrome 不能直接安装 GitHub ZIP。请先下载并解压 `BookBridge-extension.zip`，然后：
 
-Chrome 不允许一个未上架的扩展静默安装，也不允许扩展自身写入 Native Messaging 注册信息，因此当前发布包仍保留第 4 步的 Chrome 确认。将来上架 Chrome Web Store 后，这一步可以替换为“添加至 Chrome”。
+1. 打开 `chrome://extensions`；
+2. 开启“开发者模式”；
+3. 点击“加载已解压的扩展程序”；
+4. 选择解压后含有 `manifest.json` 的目录。
 
-## 从源码安装
+以后更新时覆盖该目录，并在扩展管理页点击“重新加载”。卸载时直接从 Chrome 中移除
+BookBridge；没有额外的本地程序需要卸载。
 
-安装 Node.js 22、pnpm 10 和 Go 1.24 后，在仓库根目录直接双击 `Install BookBridge.cmd`；脚本会自动构建再执行相同安装流程。
+首次使用时，在扩展内部窗口点击“添加目录”，选择实际保存 EPUB 的目录。可以添加 C
+盘、E 盘或其他盘符下的多个目录；之后下载到这些目录根层级的 EPUB 会自动显示二维码。
+找不到时仍可手动选择文件，目录授权也可以随时移除。
 
-## 卸载
-
-先从 Chrome 移除 BookBridge，然后双击 `Uninstall BookBridge.cmd`。
+文件读取、二维码和发送进度都在扩展内部窗口中。二维码打开的手机接收页默认位于
+`https://explainfuture.github.io/libraryHelper/`；该网页不接收文件上传。仓库所有者
+首次使用前需在 GitHub Settings → Pages 中选择 GitHub Actions 作为发布源。

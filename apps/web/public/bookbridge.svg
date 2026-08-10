@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="BookBridge">
+  <rect width="128" height="128" rx="28" fill="#173f35"/>
+  <path d="M28 32h30c9 0 16 7 16 16v50c-5-5-11-7-18-7H28V32Z" fill="#f5efe2"/>
+  <path d="M100 32H70c-9 0-16 7-16 16v50c5-5 11-7 18-7h28V32Z" fill="#d6a85f"/>
+  <path d="M42 62h44" stroke="#173f35" stroke-width="8" stroke-linecap="round"/>
+</svg>

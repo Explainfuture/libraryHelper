@@ -4,14 +4,13 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import "./style.css";
 
-const root = document.querySelector<HTMLElement>("#root");
-if (root === null) {
+const rootElement = document.querySelector("#root");
+if (rootElement === null) {
   throw new Error("BookBridge transfer root element is missing");
 }
 
-const transferId = new URL(window.location.href).searchParams.get("transferId");
-createRoot(root).render(
+createRoot(rootElement).render(
   <StrictMode>
-    <App transferId={transferId} />
+    <App />
   </StrictMode>,
 );
